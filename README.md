@@ -1,6 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+### Environment
+
+Create a `.env.local` file from `.env.local.example` and set your MongoDB connection string.
+
+Required variables:
+
+```bash
+MONGODB_URI=mongodb://127.0.0.1:27017/pantry
+MONGODB_DB=pantry
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
 First, run the development server:
 
@@ -16,7 +26,9 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+
+The app now reads from MongoDB on the server when `MONGODB_URI` is present, and falls back to demo data when it is not.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 

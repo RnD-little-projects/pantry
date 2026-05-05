@@ -1,0 +1,4 @@
+- App now uses a shared shadcn-style shell in src/components/app-shell.tsx.
+- Reusable primitives live in src/components/ui/{button,badge,card,table}.tsx.
+- Design tokens are defined in src/app/globals.css with HSL CSS variables.
+- Home and market-list pages are centered around a table-first body with a persistent sidebar.
