@@ -62,7 +62,7 @@ export default function LoginPage() {
                 )}
 
                 <div className="text-center text-xs text-muted-foreground">
-                  Public share links still work for allowed orders. <Link href="/session?publicId=demo-share-link" className="underline underline-offset-4">Open demo share</Link>
+                  Public share links still work for allowed orders. <Link href="/order-list/demo-share-link" className="underline underline-offset-4">Open demo share</Link>
                 </div>
                 <div className="text-center text-xs text-muted-foreground">
                   New here? <Link href="/register" className="underline underline-offset-4">Create an account</Link>

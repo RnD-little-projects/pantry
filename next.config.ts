@@ -4,9 +4,12 @@ const nextConfig = {
   reactStrictMode: true,
 };
 
+module.exports = {
+  allowedDevOrigins: ['dev-pantry.nonano.dev'],
+}
+
 export default withPWA({
   dest: "public",
   register: true,
-  skipWaiting: true,
   disable: true,
 })(nextConfig);

@@ -1,15 +1,18 @@
-import { AppShell } from "../../components/app-shell";
-import { Badge } from "../../components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import Link from "next/link";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
-import { PublicShareToggle } from "../../components/public-share-toggle";
-import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "../../lib/pantry-db";
+import { auth } from "@/auth";
+import { AppShell } from "@/components/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PublicShareToggle } from "@/components/public-share-toggle";
+import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
+import { redirect } from "next/navigation";
 
 type SessionPageProps = {
-  searchParams?: Promise<{
-    publicId?: string | string[];
+  params: Promise<{
+    publicId: string;
+  }>;
+  searchParams: Promise<{
     role?: string | string[];
   }>;
 };
@@ -22,13 +25,15 @@ function getFirstParam(value: string | string[] | undefined) {
   return value;
 }
 
-export default async function SessionPage({ searchParams }: Readonly<SessionPageProps>) {
-  const resolvedSearchParams = await searchParams;
-  const publicId = getFirstParam(resolvedSearchParams?.publicId) || "demo-share-link";
-  const role = getFirstParam(resolvedSearchParams?.role) || "viewer";
+export default async function SessionPage({ params, searchParams }: Readonly<SessionPageProps>) {
+  const session = await auth();
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  
+  const publicId = resolvedParams.publicId || "demo-share-link";
+  const role = getFirstParam(resolvedSearchParams.role) || "viewer";
   const canEdit = role === "author";
   const canPrice = role === "cashier";
-  const showSidebar = role !== "viewer";
+  const showSidebar = !!session;
 
   let order;
   let historyItems;
@@ -36,31 +41,20 @@ export default async function SessionPage({ searchParams }: Readonly<SessionPage
   let marketItems;
   try {
     [order, historyItems, sessions, marketItems] = await Promise.all([
-      getSharedOrder(publicId),
+      getSharedOrder(publicId, (session?.user as any)?.id),
       getOrderHistory(publicId),
       getOverviewSessions(),
       getMarketItems(),
     ]);
   } catch (error) {
-    if (error instanceof Error && error.message === "ORDER_NOT_PUBLIC") {
-      return (
-        <main className="flex min-h-screen items-center justify-center px-4 py-10">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>This page is not public shared.</CardTitle>
-              <CardDescription>You need a public link or explicit access to view this order session.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Link
-                  href="/login"
-                  className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-14px_rgba(45,212,191,0.75)] transition-all duration-200 hover:brightness-110"
-                >
-                  Go to login
-                </Link>
-            </CardContent>
-          </Card>
-        </main>
-      );
+    if (error instanceof Error && (error.message === "ORDER_NOT_PUBLIC" || error.message === "ORDER_NOT_FOUND")) {
+       // If not logged in and order not public or not found, go to login
+       if (!session) {
+         redirect("/login");
+       }
+       
+       // If logged in but order not public or not found, show unauthorized
+       redirect("/unauthorized");
     }
 
     throw error;
@@ -117,9 +111,11 @@ export default async function SessionPage({ searchParams }: Readonly<SessionPage
                 <span aria-hidden="true">{order.isPublic ? "🌐" : "🔒"}</span>
                 <span>{order.isPublic ? "Public link" : "Private link"}</span>
               </div>
-              <div className="mt-3">
-                <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />
-              </div>
+              {session && (
+                <div className="mt-3">
+                  <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

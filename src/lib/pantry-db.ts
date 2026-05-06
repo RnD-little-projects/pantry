@@ -1,7 +1,6 @@
 import { Order, Product } from "@/models";
 
 import { connectMongo } from "./db/mongodb";
-import { marketItems as fallbackMarketItems, workspaceSessions as fallbackSessions } from "./pantry-data";
 import type { MarketItem, OrderHistoryEntry, SharedOrderView, WorkspaceSession } from "./pantry-types";
 
 type LeanOrderItem = {
@@ -18,6 +17,7 @@ type LeanOrderItem = {
 type LeanOrder = {
   _id?: unknown;
   publicId: string;
+  authorId?: any;
   title?: string | null;
   items?: LeanOrderItem[] | null;
   status?: "draft" | "finalized" | "paid" | "unpaid" | "archived" | null;
@@ -95,44 +95,16 @@ async function canUseMongo() {
   }
 }
 
-function createDemoOrder(publicId: string): SharedOrderView {
-  const createdAtLabel = "May 5, 2026";
-  const items = [
-    { itemName: "Rice", quantityLabel: "5 kg", unitPrice: 50, lineTotal: 250, status: "finalized" as const },
-    { itemName: "Eggs", quantityLabel: "2 dozen", unitPrice: 90, lineTotal: 180, status: "finalized" as const },
-    { itemName: "Milk", quantityLabel: "3 liters", unitPrice: 70, lineTotal: 210, status: "priced" as const },
-    { itemName: "Sugar", quantityLabel: "2 kg", unitPrice: 80, lineTotal: 160, status: "draft" as const },
-  ];
-
-  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-
-  return {
-    publicId,
-    title: "Shareable order",
-    createdAtLabel,
-    updatedAtLabel: "Today",
-    items,
-    subtotal,
-    total: subtotal,
-    isPublic: true,
-    status: "draft",
-  };
-}
-
 export async function getOverviewSessions(): Promise<WorkspaceSession[]> {
   const ready = await canUseMongo();
   if (!ready) {
-    return fallbackSessions.map<WorkspaceSession>((session) => ({ ...session }));
+    return [];
   }
 
-  const orders = await Order.find({}, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1 })
+  const orders = await Order.find({}, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1, isPublic: 1 })
     .sort({ updatedAt: -1 })
     .limit(6)
     .lean();
-
-  if (!orders.length) {
-    return fallbackSessions.map<WorkspaceSession>((session) => ({ ...session }));
-  }
 
   return orders.map((order: LeanOrder, index: number) => ({
     id: String(order._id ?? order.publicId ?? index),
@@ -149,16 +121,12 @@ export async function getOverviewSessions(): Promise<WorkspaceSession[]> {
 export async function getMarketItems(): Promise<MarketItem[]> {
   const ready = await canUseMongo();
   if (!ready) {
-    return fallbackMarketItems.map<MarketItem>((item) => ({ ...item }));
+    return [];
   }
 
   const products = await Product.find({}, { name: 1, price: 1, active: 1, notes: 1 })
     .sort({ active: -1, updatedAt: -1 })
     .lean();
-
-  if (!products.length) {
-    return fallbackMarketItems.map<MarketItem>((item) => ({ ...item }));
-  }
 
   return products.map((product: LeanProduct, index: number) => ({
     id: String(product._id ?? index),
@@ -169,18 +137,20 @@ export async function getMarketItems(): Promise<MarketItem[]> {
   }));
 }
 
-export async function getSharedOrder(publicId: string): Promise<SharedOrderView> {
+export async function getSharedOrder(publicId: string, userId?: string): Promise<SharedOrderView> {
   const ready = await canUseMongo();
   if (!ready) {
-    return createDemoOrder(publicId);
+    throw new Error("DATABASE_NOT_READY");
   }
 
-  const order = await Order.findOne({ publicId }).lean();
+  const order = (await Order.findOne({ publicId }).lean()) as LeanOrder | null;
   if (!order) {
-    throw new Error("ORDER_NOT_PUBLIC");
+    throw new Error("ORDER_NOT_FOUND");
   }
 
-  if (order.isPublic !== true) {
+  // Allow access if public OR if the user is the author
+  const isAuthor = userId && order.authorId && String(order.authorId) === String(userId);
+  if (order.isPublic !== true && !isAuthor) {
     throw new Error("ORDER_NOT_PUBLIC");
   }
 
@@ -217,12 +187,7 @@ export async function getSharedOrder(publicId: string): Promise<SharedOrderView>
 export async function getOrderHistory(publicId: string): Promise<OrderHistoryEntry[]> {
   const ready = await canUseMongo();
   if (!ready) {
-    return [
-      { date: "2026-05-01", item: "Rice", quantity: "5 kg", action: "Added" },
-      { date: "2026-05-02", item: "Eggs", quantity: "2 dozen", action: "Added" },
-      { date: "2026-05-03", item: "Milk", quantity: "3 liters", action: "Added" },
-      { date: "2026-05-04", item: "Sugar", quantity: "2 kg", action: "Added" },
-    ];
+    return [];
   }
 
   const auditLogs = await import("@/models").then(({ AuditLog }) =>
@@ -245,4 +210,56 @@ export async function getOrderHistory(publicId: string): Promise<OrderHistoryEnt
       action: entry.action.replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase()),
     };
   });
+}
+
+export async function getLatestOrderPublicId(userId?: string): Promise<string | null> {
+  const ready = await canUseMongo();
+  if (!ready) {
+    return null;
+  }
+
+  const query = userId ? { authorId: userId } : { isPublic: true };
+
+  const latestOrder = await Order.findOne(query, { publicId: 1 })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  if (!latestOrder && userId) {
+    return null;
+  }
+
+  return latestOrder?.publicId || null;
+}
+
+export async function createNewOrder(userId: string, itemName: string, quantityLabel: string) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("Database not ready");
+
+  // Generate a simple unique publicId
+  const publicId = Math.random().toString(36).substring(2, 12);
+  
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const newOrder = new Order({
+    publicId,
+    authorId: userId,
+    title: dateStr,
+    isPublic: false,
+    status: "draft",
+    items: [
+      {
+        itemName,
+        quantity: 1,
+        quantityLabel,
+        status: "draft",
+      },
+    ],
+  });
+
+  await newOrder.save();
+  return publicId;
 }

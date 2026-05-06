@@ -73,7 +73,7 @@ export default async function RegisterPage({ searchParams }: Readonly<RegisterPa
                   try {
                     const username = String(formData.get("username") ?? "").trim();
                     const emailRaw = String(formData.get("email") ?? "").trim();
-                    const email = emailRaw ? emailRaw.toLowerCase() : null;
+                    const email = emailRaw ? emailRaw.toLowerCase() : undefined;
                     const password = String(formData.get("password") ?? "");
                     const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
@@ -105,7 +105,7 @@ export default async function RegisterPage({ searchParams }: Readonly<RegisterPa
 
                     await User.create({
                       username,
-                      email,
+                      ...(email ? { email } : {}),
                       passwordHash,
                       provider: "local",
                       isActive: true,

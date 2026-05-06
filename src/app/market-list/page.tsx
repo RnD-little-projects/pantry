@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { auth } from "@/auth";
 import { AppShell } from "../../components/app-shell";
 import { Badge } from "../../components/ui/badge";
@@ -7,31 +5,16 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { getMarketItems, getOverviewSessions } from "../../lib/pantry-db";
+import { redirect } from "next/navigation";
 
 export default async function MarketListPage() {
   const session = await auth();
-  const [marketItems, sessions] = await Promise.all([getMarketItems(), getOverviewSessions()]);
 
   if (!session) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Sign in required</CardTitle>
-            <CardDescription>Log in before opening the market list.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/login"
-              className="inline-flex h-11 w-full items-center justify-center rounded-2xl border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-14px_rgba(45,212,191,0.75)] transition-all duration-200 hover:brightness-110"
-            >
-              Go to login
-            </Link>
-          </CardContent>
-        </Card>
-      </main>
-    );
+    redirect("/login");
   }
+
+  const [marketItems, sessions] = await Promise.all([getMarketItems(), getOverviewSessions()]);
 
   return (
     <AppShell active="market" marketItems={marketItems} sessions={sessions}>

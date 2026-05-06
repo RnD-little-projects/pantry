@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 
-import { marketItems as fallbackMarketItems, workspaceSessions as fallbackSessions } from "../lib/pantry-data";
 import type { MarketItem, WorkspaceSession } from "../lib/pantry-types";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -228,8 +227,8 @@ function MarketModal({
 export function AppShell({
   active,
   children,
-  sessions = fallbackSessions,
-  marketItems = fallbackMarketItems,
+  sessions = [],
+  marketItems = [],
   showSidebar = true,
 }: Readonly<ShellProps>) {
   const [collapsed, setCollapsed] = useState(false);
@@ -267,7 +266,19 @@ export function AppShell({
             <div className={cn("mt-5 flex-1 overflow-y-auto pr-1", collapsed && "pr-0") }>
               {collapsed ? null : (
                 <div className="space-y-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">{sidebarTitle}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">{sidebarTitle}</p>
+                    {active !== "market" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-[10px] uppercase tracking-widest text-primary hover:bg-primary/10"
+                        onClick={() => window.location.href = "/?new=true"}
+                      >
+                        + New
+                      </Button>
+                    )}
+                  </div>
                   <p className="text-sm leading-6 text-muted-foreground">
                     {active === "market" ? "Review catalog prices and item notes." : "Tap any session to open it."}
                   </p>

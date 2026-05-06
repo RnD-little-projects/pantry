@@ -7,9 +7,19 @@ export default function UnauthorizedPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">Access denied</p>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">This page is not public shared.</h1>
         <p className="mt-3 text-sm text-muted-foreground">You need the correct access or a public share link to view this order session.</p>
-        <div className="mt-6 flex justify-center">
-          <Link href="/login" className="inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-14px_rgba(45,212,191,0.75)] transition-all duration-200 hover:brightness-110">
-            Back to login
+        
+        <div className="mt-8 flex flex-col gap-3">
+          <Link
+            href="/"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-14px_rgba(45,212,191,0.75)] transition-all duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2"
+          >
+            Back to Home
+          </Link>
+          <Link
+            href="/market-list"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-border/80 bg-transparent px-4 py-2.5 text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2"
+          >
+            View Market Items
           </Link>
         </div>
       </div>
