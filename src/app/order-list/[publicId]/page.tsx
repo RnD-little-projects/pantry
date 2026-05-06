@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { PublicShareToggle } from "@/components/public-share-toggle";
 import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
+import { OrderItemComposer } from "./order-item-composer";
 
 type SessionPageProps = {
   params: Promise<{
@@ -31,7 +32,6 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
   
   const publicId = resolvedParams.publicId || "demo-share-link";
   const role = getFirstParam(resolvedSearchParams.role) || "viewer";
-  const canEdit = role === "author";
   const canPrice = role === "cashier";
   const showSidebar = !!session;
 
@@ -60,15 +60,16 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
     throw error;
   }
 
+  const isCreator = order.isAuthor === true;
   let accessLabel = "Read only";
-  if (canEdit) {
+  if (isCreator) {
     accessLabel = "Author edit";
   } else if (canPrice) {
     accessLabel = "Cashier pricing";
   }
 
   function renderAction() {
-    if (canEdit) {
+    if (isCreator) {
       return <Button variant="outline" size="sm">Edit</Button>;
     }
 
@@ -90,7 +91,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                 <CardDescription>Shareable order: {publicId}</CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant={canEdit ? "default" : "secondary"}>{accessLabel}</Badge>
+                <Badge variant={isCreator ? "default" : "secondary"}>{accessLabel}</Badge>
                 <Badge variant={order.isPublic ? "default" : "outline"}>{order.isPublic ? "Public" : "Private"}</Badge>
                 <Badge variant="outline">{order.status}</Badge>
               </div>
@@ -155,6 +156,8 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
             </TableBody>
           </Table>
         </div>
+
+        {isCreator && <OrderItemComposer publicId={publicId} />}
 
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-sm">
           <div className="border-b border-border/60 px-6 py-4 bg-slate-950/5 text-sm font-semibold text-foreground">History</div>

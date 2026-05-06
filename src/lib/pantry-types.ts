@@ -43,4 +43,21 @@ export type SharedOrderView = {
   total: number;
   isPublic: boolean;
   status: "draft" | "finalized" | "paid" | "unpaid" | "archived";
+  isAuthor?: boolean;
+};
+
+export type AddOrderItemRequest = {
+  itemName: string;
+  quantityLabel: string;
+};
+
+export type AddOrderItemResponse = {
+  item: {
+    id: string;
+    itemName: string;
+    quantityLabel: string;
+    unitPrice: number | null;
+    lineTotal: number;
+    status: "draft" | "priced" | "finalized";
+  };
 };

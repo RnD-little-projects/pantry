@@ -148,8 +148,7 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     throw new Error("ORDER_NOT_FOUND");
   }
 
-  // Allow access if public OR if the user is the author
-  const isAuthor = userId && order.authorId && String(order.authorId) === String(userId);
+  const isAuthor = !!(userId && order.authorId && String(order.authorId) === String(userId));
   if (order.isPublic !== true && !isAuthor) {
     throw new Error("ORDER_NOT_PUBLIC");
   }
@@ -181,6 +180,68 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     total: typeof order.total === "number" ? order.total : subtotal,
     isPublic: order.isPublic !== false,
     status: order.status ?? "draft",
+    isAuthor,
+  };
+}
+
+export async function appendOrderItem(publicId: string, userId: string, itemName: string, quantityLabel: string) {
+  const ready = await canUseMongo();
+  if (!ready) {
+    throw new Error("DATABASE_NOT_READY");
+  }
+
+  const cleanItemName = String(itemName ?? "").trim();
+  const cleanQuantityLabel = String(quantityLabel ?? "").trim();
+
+  if (cleanItemName.length < 2) {
+    const error = new Error("Item name must be at least 2 characters");
+    (error as any).code = "ITEM_NAME_TOO_SHORT";
+    throw error;
+  }
+
+  if (cleanQuantityLabel.length < 1) {
+    const error = new Error("Quantity label is required");
+    (error as any).code = "QUANTITY_LABEL_TOO_SHORT";
+    throw error;
+  }
+
+  const order = await Order.findOne({ publicId });
+  if (!order) {
+    throw new Error("ORDER_NOT_FOUND");
+  }
+
+  if (!order.authorId || String(order.authorId) !== String(userId)) {
+    const error = new Error("Forbidden");
+    (error as any).code = "FORBIDDEN";
+    throw error;
+  }
+
+  const parsedQuantity = parseInt(cleanQuantityLabel, 10);
+  const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
+
+  const item = {
+    itemName: cleanItemName,
+    normalizedItemName: cleanItemName.toLowerCase(),
+    quantity,
+    quantityLabel: cleanQuantityLabel,
+    unit: "",
+    unitPrice: null,
+    lineTotal: 0,
+    status: "draft" as const,
+  };
+
+  order.items.push(item);
+  order.markModified("items");
+  await order.save();
+
+  const inserted = order.items[order.items.length - 1];
+  return {
+    id: String(inserted._id ?? order.items.length - 1),
+    itemName: inserted.itemName,
+    quantityLabel: inserted.quantityLabel,
+    unitPrice: null,
+    lineTotal: 0,
+    status: "draft" as const,
   };
 }
 
