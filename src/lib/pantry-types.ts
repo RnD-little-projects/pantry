@@ -47,6 +47,8 @@ export type SharedOrderView = {
 };
 
 export type AddOrderItemRequest = {
+  publicId?: string;
+  itemIndex?: number;
   itemName: string;
   quantityLabel: string;
 };

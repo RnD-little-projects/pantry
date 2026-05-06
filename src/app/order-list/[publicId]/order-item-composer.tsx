@@ -19,6 +19,8 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
   const inFlightPayloadRef = useRef<string>("");
   const lastSavedPayloadRef = useRef<string>("");
   const dirtySinceSaveRef = useRef<boolean>(false);
+  const itemNameRef = useRef<HTMLInputElement | null>(null);
+  const quantityLabelRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -98,12 +100,12 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
     setMessage("Saving item...");
 
     try {
-      const response = await fetch(`/api/order-list/${publicId}/add-item`, {
+      const response = await fetch(`/api/order-list/add-item`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ itemName: cleanName, quantityLabel: cleanQuantity }),
+        body: JSON.stringify({ publicId, itemName: cleanName, quantityLabel: cleanQuantity }),
       });
 
       if (!response.ok) {
@@ -135,40 +137,43 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
     scheduleAutosave();
   };
 
+  const handleFocusOutside = () => {
+    window.setTimeout(() => {
+      const active = document.activeElement;
+      if (active === itemNameRef.current || active === quantityLabelRef.current) {
+        return;
+      }
+
+      handleAutosave();
+    }, 20);
+  };
+
   return (
-    <div className="rounded-2xl border border-border/60 bg-card/80 p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold uppercase tracking-[0.3em] text-muted-foreground">Add item</h2>
-          <p className="text-sm text-muted-foreground">Creator only. Autosaves after 10 seconds of inactivity.</p>
-        </div>
-        <div className="text-right text-xs font-medium uppercase tracking-[0.22em] text-muted-foreground">
-          {status === "saved" ? "Saved" : status === "saving" ? "Saving..." : status === "error" ? "Error" : "Idle"}
-        </div>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-[1.5fr_1fr]">
-        <label className="space-y-2">
-          <span className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Item Name</span>
-          <input
-            value={itemName}
-            onChange={handleChange(setItemName)}
-            placeholder="e.g. Bananas"
-            className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-        </label>
-        <label className="space-y-2">
-          <span className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Quantity</span>
-          <input
-            value={quantityLabel}
-            onChange={handleChange(setQuantityLabel)}
-            placeholder="e.g. 2 kg"
-            className="w-full rounded-xl border border-border/60 bg-background px-4 py-3 text-sm text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-        </label>
-      </div>
-      <div className="mt-3 min-h-[1.5rem] text-sm text-muted-foreground">
-        {status === "error" ? <span className="text-destructive">{message}</span> : <span>{message}</span>}
-      </div>
-    </div>
+    <tr className="bg-slate-950/90">
+      <td className="p-0">
+        <input
+          ref={itemNameRef}
+          value={itemName}
+          onChange={handleChange(setItemName)}
+          onBlur={handleFocusOutside}
+          placeholder="Add item name"
+          className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
+        />
+      </td>
+      <td className="p-0">
+        <input
+          ref={quantityLabelRef}
+          value={quantityLabel}
+          onChange={handleChange(setQuantityLabel)}
+          onBlur={handleFocusOutside}
+          placeholder="Add quantity"
+          className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
+        />
+      </td>
+      <td className="text-muted-foreground">&nbsp;</td>
+      <td className="text-right text-xs uppercase tracking-[0.22em] text-muted-foreground pr-4">
+        {status === "saved" ? "Saved" : status === "saving" ? "Saving..." : status === "error" ? "Error" : "Idle"}
+      </td>
+    </tr>
   );
 }

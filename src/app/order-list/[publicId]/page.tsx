@@ -1,13 +1,13 @@
 import { auth } from "@/auth";
 import { AppShell } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PublicShareToggle } from "@/components/public-share-toggle";
 import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
 import { OrderItemComposer } from "./order-item-composer";
+import { EditableQuantityCell } from "./editable-quantity-cell";
 
 type SessionPageProps = {
   params: Promise<{
@@ -83,43 +83,19 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
   return (
     <AppShell active="overview" showSidebar={showSidebar} sessions={sessions} marketItems={marketItems}>
       <div className="space-y-8 rounded-3xl border border-border/60 bg-card/80 p-6 shadow-sm">
-        <Card className="border-border/60 bg-background/80">
-          <CardHeader className="border-b border-border/60">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <CardTitle>{order.title}</CardTitle>
-                <CardDescription>Shareable order: {publicId}</CardDescription>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant={isCreator ? "default" : "secondary"}>{accessLabel}</Badge>
-                <Badge variant={order.isPublic ? "default" : "outline"}>{order.isPublic ? "Public" : "Private"}</Badge>
-                <Badge variant="outline">{order.status}</Badge>
-              </div>
+        <div className="rounded-3xl border border-border/60 bg-background/80 p-6">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">{order.title}</h1>
+              <p className="mt-2 text-sm text-muted-foreground">Created {order.createdAtLabel}</p>
             </div>
-          </CardHeader>
-          <CardContent className="grid gap-4 p-6 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
-              <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Created</div>
-              <div className="mt-2 text-lg font-semibold text-foreground">{order.createdAtLabel}</div>
+            <div className="flex flex-wrap items-center gap-2">
+              {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
+              <Badge variant={isCreator ? "default" : "secondary"}>{accessLabel}</Badge>
+              <Badge variant={order.isPublic ? "default" : "outline"}>{order.isPublic ? "Public" : "Private"}</Badge>
             </div>
-            <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
-              <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Updated</div>
-              <div className="mt-2 text-lg font-semibold text-foreground">{order.updatedAtLabel}</div>
-            </div>
-            <div className="rounded-2xl border border-border/60 bg-card/80 p-4">
-              <div className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Access</div>
-              <div className="mt-2 flex items-center gap-3 text-lg font-semibold text-foreground">
-                <span aria-hidden="true">{order.isPublic ? "🌐" : "🔒"}</span>
-                <span>{order.isPublic ? "Public link" : "Private link"}</span>
-              </div>
-              {session && (
-                <div className="mt-3">
-                  <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-sm">
           <Table>
@@ -129,21 +105,18 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                 <TableHead>Quantity</TableHead>
                 <TableHead>Price per item</TableHead>
                 <TableHead className="text-right">Total</TableHead>
-                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {order.items.map((entry) => (
-                <TableRow key={entry.id ?? entry.itemName}>
+              {isCreator && <OrderItemComposer publicId={publicId} />}
+              {order.items.map((entry, index) => (
+                <TableRow key={entry.id ?? `${entry.itemName}-${index}`}>
                   <TableCell>
                     <div className="font-medium text-foreground">{entry.itemName}</div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{entry.quantityLabel}</TableCell>
+                  <EditableQuantityCell publicId={publicId} itemIndex={index} quantityLabel={entry.quantityLabel} isCreator={isCreator} />
                   <TableCell className="font-mono text-muted-foreground">{entry.unitPrice === null ? "Pending" : `₱${entry.unitPrice}`}</TableCell>
                   <TableCell className="text-right font-mono text-muted-foreground">₱{entry.lineTotal}</TableCell>
-                  <TableCell className="text-right">
-                    {renderAction()}
-                  </TableCell>
                 </TableRow>
               ))}
               <TableRow>
@@ -156,8 +129,6 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
             </TableBody>
           </Table>
         </div>
-
-        {isCreator && <OrderItemComposer publicId={publicId} />}
 
         <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-sm">
           <div className="border-b border-border/60 px-6 py-4 bg-slate-950/5 text-sm font-semibold text-foreground">History</div>

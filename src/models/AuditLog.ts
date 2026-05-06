@@ -12,7 +12,7 @@ const auditLogSchema = new Schema(
     targetId: { type: String, required: true, index: true },
     action: {
       type: String,
-      enum: ["create", "update", "delete", "finalize", "pay", "share", "price_adjust", "alias_add"],
+      enum: ["create", "update", "delete", "finalize", "pay", "share", "price_adjust", "alias_add", "item_add", "quantity_update"],
       required: true,
       index: true,
     },

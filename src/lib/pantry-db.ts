@@ -1,4 +1,4 @@
-import { Order, Product } from "@/models";
+import { AuditLog, Order, Product } from "@/models";
 
 import { connectMongo } from "./db/mongodb";
 import type { MarketItem, OrderHistoryEntry, SharedOrderView, WorkspaceSession } from "./pantry-types";
@@ -234,6 +234,18 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
   order.markModified("items");
   await order.save();
 
+  await AuditLog.create({
+    actorId: userId,
+    targetType: "order",
+    targetId: publicId,
+    action: "item_add",
+    after: {
+      itemName: item.itemName,
+      quantityLabel: item.quantityLabel,
+    },
+    note: `Added ${item.itemName}`,
+  });
+
   const inserted = order.items[order.items.length - 1];
   return {
     id: String(inserted._id ?? order.items.length - 1),
@@ -242,6 +254,74 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     unitPrice: null,
     lineTotal: 0,
     status: "draft" as const,
+  };
+}
+
+export async function updateOrderItemQuantity(publicId: string, userId: string, itemIndex: number, quantityLabel: string) {
+  const ready = await canUseMongo();
+  if (!ready) {
+    throw new Error("DATABASE_NOT_READY");
+  }
+
+  const cleanQuantityLabel = String(quantityLabel ?? "").trim();
+  if (cleanQuantityLabel.length < 1) {
+    const error = new Error("Quantity label is required");
+    (error as any).code = "QUANTITY_LABEL_TOO_SHORT";
+    throw error;
+  }
+
+  const order = await Order.findOne({ publicId });
+  if (!order) {
+    throw new Error("ORDER_NOT_FOUND");
+  }
+
+  if (!order.authorId || String(order.authorId) !== String(userId)) {
+    const error = new Error("Forbidden");
+    (error as any).code = "FORBIDDEN";
+    throw error;
+  }
+
+  if (!Array.isArray(order.items) || itemIndex < 0 || itemIndex >= order.items.length) {
+    const error = new Error("ITEM_NOT_FOUND");
+    (error as any).code = "ITEM_NOT_FOUND";
+    throw error;
+  }
+
+  const item = order.items[itemIndex] as any;
+  const oldQuantityLabel = String(item.quantityLabel ?? "").trim();
+  item.quantityLabel = cleanQuantityLabel;
+
+  const parsedQuantity = parseInt(cleanQuantityLabel, 10);
+  if (Number.isFinite(parsedQuantity) && parsedQuantity > 0) {
+    item.quantity = parsedQuantity;
+  }
+
+  order.markModified("items");
+  await order.save();
+
+  await AuditLog.create({
+    actorId: userId,
+    targetType: "order",
+    targetId: publicId,
+    action: "quantity_update",
+    before: {
+      itemName: item.itemName,
+      quantityLabel: oldQuantityLabel,
+    },
+    after: {
+      itemName: item.itemName,
+      quantityLabel: item.quantityLabel,
+    },
+    note: `Updated quantity for ${item.itemName}`,
+  });
+
+  return {
+    id: String(item._id ?? itemIndex),
+    itemName: item.itemName,
+    quantityLabel: item.quantityLabel,
+    unitPrice: item.unitPrice ?? null,
+    lineTotal: item.lineTotal ?? 0,
+    status: item.status ?? "draft",
   };
 }
 
