@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import type { MarketItem, WorkspaceSession } from "../lib/pantry-types";
 import { Badge } from "./ui/badge";
@@ -56,40 +57,32 @@ function ShellBrand({ collapsed, onToggle }: Readonly<{ collapsed: boolean; onTo
 }
 
 function SessionList({ collapsed, sessions }: Readonly<{ collapsed: boolean; sessions: ReadonlyArray<WorkspaceSession> }>) {
+  const pathname = usePathname();
   if (collapsed) return null;
 
   return (
-    <div className="space-y-2">
-      {sessions.map((session) => (
-        <Link
-          key={session.id ?? session.publicId ?? session.title}
-          href={session.publicId ? `/order-list/${session.publicId}` : "#"}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left transition-all duration-200",
-            session.active
-              ? "border-primary/30 bg-primary/12 text-foreground shadow-[0_12px_24px_-16px_rgba(45,212,191,0.7)]"
-              : "border-border/60 bg-white/[0.03] text-muted-foreground hover:border-border hover:bg-white/[0.06] hover:text-foreground",
-          )}
-        >
-          <div
+    <div className="mt-4 space-y-3 px-1">
+      {sessions.map((session) => {
+        const href = session.publicId ? `/order-list/${session.publicId}` : "#";
+        const isActive = pathname === href;
+
+        return (
+          <Link
+            key={session.id ?? session.publicId ?? session.title}
+            href={href}
             className={cn(
-              "grid h-10 w-10 shrink-0 place-items-center rounded-xl border text-[11px] font-semibold",
-              session.active ? "border-primary/35 bg-primary/18 text-primary-foreground" : "border-border/60 bg-black/10 text-foreground",
+              "block w-full text-left transition-colors duration-200",
+              isActive
+                ? "text-foreground font-bold"
+                : "text-foreground/50 font-normal hover:text-foreground",
             )}
           >
-            {session.isPublic === false ? "🔒" : "🌐"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-3">
-              <span className="truncate text-sm font-medium text-foreground">{session.title}</span>
-              <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{session.updated}</span>
-            </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              {session.isPublic === false ? "Private order list" : "Public order list"}
-            </div>
-          </div>
-        </Link>
-      ))}
+            <span className="truncate text-sm tracking-wide">
+              {session.title}
+            </span>
+          </Link>
+        );
+      })}
     </div>
   );
 }
