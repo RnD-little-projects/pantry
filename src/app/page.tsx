@@ -35,7 +35,7 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
   ]);
 
   return (
-    <AppShell active="overview" sessions={sessions} marketItems={marketItems}>
+    <AppShell active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
       <div className="space-y-6">
         <div className="px-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Start a fresh order</h1>

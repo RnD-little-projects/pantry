@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,6 +16,7 @@ type ShellProps = {
   sessions?: ReadonlyArray<WorkspaceSession>;
   marketItems?: ReadonlyArray<MarketItem>;
   showSidebar?: boolean;
+  userRole?: string;
 };
 
 type ThemeMode = "system" | "light" | "dark";
@@ -93,12 +94,14 @@ function AccountMenu({
   themeMode,
   onOpenChange,
   onThemeChange,
+  userRole,
 }: {
   readonly collapsed: boolean;
   readonly open: boolean;
   readonly themeMode: ThemeMode;
   readonly onOpenChange: (open: boolean) => void;
   readonly onThemeChange: (mode: ThemeMode) => void;
+  readonly userRole?: string;
 }) {
   return (
     <div className="relative">
@@ -124,16 +127,16 @@ function AccountMenu({
           <div className="absolute bottom-[calc(100%+0.75rem)] left-0 right-0 z-50 rounded-[1.5rem] border border-border/70 bg-card/95 p-3 shadow-[0_28px_70px_-40px_rgba(0,0,0,0.9)] backdrop-blur-xl">
             <div className="px-2 pb-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-muted-foreground">Preference theme</p>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-3 grid grid-cols-3 gap-1">
                 {(["system", "light", "dark"] as const).map((mode) => (
                   <button
                     key={mode}
                     type="button"
                     className={cn(
-                      "rounded-2xl border px-3 py-2 text-xs font-medium uppercase tracking-[0.22em] transition",
+                      "flex items-center justify-center rounded-lg border py-2 text-[9px] font-bold uppercase transition",
                       themeMode === mode
                         ? "border-primary/35 bg-primary/15 text-foreground"
-                        : "border-border/70 bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground",
+                        : "border-border/70 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                     onClick={() => onThemeChange(mode)}
                   >
@@ -144,15 +147,33 @@ function AccountMenu({
             </div>
 
             <div className="space-y-1 border-t border-border/60 pt-3">
+              {userRole === "admin" && (
+                <>
+                  <Link
+                    href="/admin/orders"
+                    className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-medium text-primary transition hover:bg-primary/5"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    <span>Manage Orders</span>
+                    <span className="text-[10px] uppercase tracking-[0.28em]">Admin</span>
+                  </Link>
+                  <Link
+                    href="/admin/products"
+                    className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-medium text-primary transition hover:bg-primary/10"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    <span>Manage Products</span>
+                    <span className="text-[10px] uppercase tracking-[0.28em]">Admin</span>
+                  </Link>
+                </>
+              )}
               {[
-                "Settings",
-                "Account",
                 "Logout",
               ].map((item) => (
                 <button
                   key={item}
                   type="button"
-                  className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-white/[0.05] hover:text-foreground"
+                  className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
                 >
                   <span>{item}</span>
                   <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Open</span>
@@ -174,7 +195,7 @@ function MarketModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
       <button
         type="button"
         aria-label="Close market list modal"
@@ -201,7 +222,7 @@ function MarketModal({
 
         <div className="max-h-[60vh] divide-y divide-border/60 overflow-y-auto">
           {marketItems.map((item) => (
-            <div key={item.id ?? item.name} className="grid grid-cols-[1.5fr_0.6fr_0.5fr] items-center px-6 py-4 hover:bg-white/[0.03]">
+            <div key={item.id ?? item.name} className="grid grid-cols-[1.5fr_0.6fr_0.5fr] items-center px-6 py-4 hover:bg-muted/30">
               <div>
                 <div className="font-medium text-foreground">{item.name}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{item.note}</div>
@@ -224,17 +245,47 @@ export function AppShell({
   sessions = [],
   marketItems = [],
   showSidebar = true,
+  userRole,
 }: Readonly<ShellProps>) {
   const [collapsed, setCollapsed] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
 
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("pantry-theme") as ThemeMode;
+    if (savedTheme) {
+      setThemeMode(savedTheme);
+    }
+  }, []);
+
+  // Apply theme to document and persist
+  useEffect(() => {
+    const root = window.document.documentElement;
+    
+    const applyTheme = (theme: ThemeMode) => {
+      root.classList.remove("light", "dark");
+      localStorage.setItem("pantry-theme", theme);
+      
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        root.classList.add(systemTheme);
+        root.style.colorScheme = systemTheme;
+      } else {
+        root.classList.add(theme);
+        root.style.colorScheme = theme;
+      }
+    };
+
+    applyTheme(themeMode);
+  }, [themeMode]);
+
   const sidebarTitle = active === "market" ? "Market" : "Order list";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_24%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.12),_transparent_24%),linear-gradient(180deg,_#060b16_0%,_#09111f_100%)] text-foreground">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-25" />
+    <main className="relative min-h-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(var(--grid-color)_1px,transparent_1px),linear-gradient(90deg,var(--grid-color)_1px,transparent_1px)] bg-[size:72px_72px] opacity-100" />
 
       {showSidebar ? (
         <div
@@ -302,6 +353,7 @@ export function AppShell({
                 themeMode={themeMode}
                 onOpenChange={setAccountOpen}
                 onThemeChange={setThemeMode}
+                userRole={userRole}
               />
             </div>
           </aside>

@@ -1,4 +1,4 @@
-import { AuditLog, Order, Product } from "@/models";
+import { AuditLog, Order, Product, User, Category } from "@/models";
 
 import { connectMongo } from "./db/mongodb";
 import type { MarketItem, OrderHistoryEntry, SharedOrderView, WorkspaceSession } from "./pantry-types";
@@ -219,15 +219,26 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
   const parsedQuantity = parseInt(cleanQuantityLabel, 10);
   const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
 
+  // Case-insensitive product matching
+  const normalizedItemName = cleanItemName.toLowerCase();
+  const matchedProduct = await Product.findOne({
+    $or: [
+      { normalizedName: normalizedItemName },
+      { "aliases.value": normalizedItemName }
+    ],
+    active: true
+  }).lean();
+
   const item = {
-    itemName: cleanItemName,
-    normalizedItemName: cleanItemName.toLowerCase(),
+    productId: matchedProduct ? matchedProduct._id : null,
+    itemName: matchedProduct ? matchedProduct.name : cleanItemName,
+    normalizedItemName,
     quantity,
     quantityLabel: cleanQuantityLabel,
-    unit: "",
-    unitPrice: null,
-    lineTotal: 0,
-    status: "draft" as const,
+    unit: matchedProduct ? (matchedProduct.unit || "") : "",
+    unitPrice: matchedProduct ? matchedProduct.price : null,
+    lineTotal: matchedProduct && matchedProduct.price ? matchedProduct.price * quantity : 0,
+    status: matchedProduct && matchedProduct.price ? "priced" as const : "draft" as const,
   };
 
   order.items.push(item);
@@ -418,4 +429,87 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
   });
 
   return publicId;
+}
+export async function getAllUsersWithOrderCounts() {
+  const ready = await canUseMongo();
+  if (!ready) return [];
+
+  const users = await User.find({}, { username: 1, email: 1, avatarUrl: 1, role: 1 }).lean();
+  
+  const userList = await Promise.all(users.map(async (user: any) => {
+    const orderCount = await Order.countDocuments({ authorId: user._id });
+    return {
+      id: String(user._id),
+      username: user.username,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+      role: user.role,
+      orderCount
+    };
+  }));
+
+  return userList;
+}
+
+export async function getOrdersByUser(userId: string): Promise<WorkspaceSession[]> {
+  const ready = await canUseMongo();
+  if (!ready) return [];
+
+  const orders = await Order.find({ authorId: userId })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  return orders.map((order: any, index: number) => ({
+    id: String(order._id),
+    publicId: order.publicId,
+    title: order.title || `Order ${order.publicId}`,
+    preview: order.status === "draft" ? "Draft" : order.status === "paid" ? "Paid" : "Ready",
+    items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
+    updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
+    active: false,
+    isPublic: order.isPublic !== false,
+  }));
+}
+
+export async function getCategories() {
+  const ready = await canUseMongo();
+  if (!ready) return [];
+  return Category.find({ active: true }).sort({ name: 1 }).lean();
+}
+
+export async function adminUpsertCategory(name: string) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("Database not ready");
+
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  return Category.findOneAndUpdate(
+    { slug },
+    { name, slug, active: true },
+    { upsert: true, new: true }
+  );
+}
+
+export async function adminUpdateProduct(productId: string | null, data: any) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("Database not ready");
+
+  const normalizedName = data.name.toLowerCase();
+  
+  const updateData = {
+    ...data,
+    normalizedName,
+    active: true
+  };
+
+  if (productId) {
+    return Product.findByIdAndUpdate(productId, updateData, { new: true });
+  } else {
+    return Product.create(updateData);
+  }
+}
+
+export async function adminDeleteProduct(productId: string) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("Database not ready");
+  return Product.findByIdAndUpdate(productId, { active: false });
 }

@@ -81,7 +81,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
   }
 
   return (
-    <AppShell active="overview" showSidebar={showSidebar} sessions={sessions} marketItems={marketItems}>
+    <AppShell active="overview" showSidebar={showSidebar} sessions={sessions} marketItems={marketItems} userRole={(session?.user as any)?.role}>
       <div className="space-y-6">
         <div className="px-1">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

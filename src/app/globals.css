@@ -1,6 +1,30 @@
 @import "tailwindcss";
 
 :root {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 7%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 7%;
+  --primary: 173 80% 40%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 222 47.4% 11.2%;
+  --muted: 210 40% 96.1%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 173 80% 95%;
+  --accent-foreground: 173 80% 20%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 173 80% 45%;
+  --radius: 1rem;
+  --grid-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark {
   --background: 222 47% 7%;
   --foreground: 210 40% 98%;
   --card: 222 47% 10%;
@@ -20,7 +44,7 @@
   --border: 215 28% 22%;
   --input: 215 28% 22%;
   --ring: 173 80% 45%;
-  --radius: 1rem;
+  --grid-color: rgba(255, 255, 255, 0.035);
 }
 
 @theme inline {
@@ -43,17 +67,31 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-grid: var(--grid-color);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 html {
   min-height: 100%;
+  background-color: hsl(var(--background));
+  transition: background-color 0.3s ease;
+}
+
+html.dark {
   background:
     radial-gradient(circle at top, rgb(56 189 248 / 0.1), transparent 28%),
     radial-gradient(circle at 80% 0%, rgb(45 212 191 / 0.12), transparent 24%),
     hsl(var(--background));
   color-scheme: dark;
+}
+
+html.light {
+  background:
+    radial-gradient(circle at top, rgb(56 189 248 / 0.05), transparent 28%),
+    radial-gradient(circle at 80% 0%, rgb(45 212 191 / 0.05), transparent 24%),
+    hsl(var(--background));
+  color-scheme: light;
 }
 
 * {

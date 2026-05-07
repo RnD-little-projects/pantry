@@ -17,7 +17,7 @@ export default async function MarketListPage() {
   const [marketItems, sessions] = await Promise.all([getMarketItems(), getOverviewSessions()]);
 
   return (
-    <AppShell active="market" marketItems={marketItems} sessions={sessions}>
+    <AppShell active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as any).role}>
       <Card>
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

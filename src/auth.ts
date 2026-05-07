@@ -46,6 +46,7 @@ const authConfig = {
           name: user.username,
           email: user.email ?? undefined,
           image: user.avatarUrl ?? undefined,
+          role: user.role ?? "author",
         };
       },
     }),
@@ -63,6 +64,7 @@ const authConfig = {
       if (user) {
         token.userId = user.id ?? undefined;
         token.username = user.name ?? undefined;
+        token.role = user.role ?? "author";
       }
 
       if (account?.provider === "google") {
@@ -82,6 +84,10 @@ const authConfig = {
 
       if (session.user && token.userId) {
         session.user.id = token.userId;
+      }
+
+      if (session.user && token.role) {
+        session.user.role = token.role;
       }
 
       return session;

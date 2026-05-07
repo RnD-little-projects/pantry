@@ -149,7 +149,7 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
   };
 
   return (
-    <tr className="bg-slate-950/90">
+    <tr className="bg-muted/40">
       <td className="p-0">
         <input
           ref={itemNameRef}
