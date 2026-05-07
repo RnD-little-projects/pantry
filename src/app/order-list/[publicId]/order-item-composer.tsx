@@ -163,10 +163,11 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
       <td className="p-0">
         <input
           ref={quantityLabelRef}
+          type="number"
           value={quantityLabel}
           onChange={handleChange(setQuantityLabel)}
           onBlur={handleFocusOutside}
-          placeholder="Add quantity"
+          placeholder="0"
           className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
         />
       </td>

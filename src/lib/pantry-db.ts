@@ -342,9 +342,10 @@ export async function getOrderHistory(publicId: string): Promise<OrderHistoryEnt
     return [];
   }
 
-  return auditLogs.map((entry: LeanAuditLog) => {
+  return auditLogs.map((entry: any) => {
     const after = entry.after ?? {};
     return {
+      id: String(entry._id),
       date: new Date(entry.createdAt ?? Date.now()).toISOString().slice(0, 10),
       item: after.itemName || after.productName || entry.note || "Order update",
       quantity: String(after.quantityLabel || after.quantity || "-"),
@@ -402,5 +403,19 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
   });
 
   await newOrder.save();
+
+  // Log the first item in history
+  await AuditLog.create({
+    actorId: userId,
+    targetType: "order",
+    targetId: publicId,
+    action: "item_add",
+    after: {
+      itemName,
+      quantityLabel,
+    },
+    note: `Added ${itemName}`,
+  });
+
   return publicId;
 }

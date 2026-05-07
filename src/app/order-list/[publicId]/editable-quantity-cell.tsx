@@ -58,6 +58,7 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
     <td className="p-0">
       <div className="relative">
         <input
+          type="number"
           value={value}
           onChange={(event) => {
             setValue(event.target.value);
@@ -66,7 +67,7 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
           }}
           onBlur={handleBlur}
           disabled={!isCreator}
-          placeholder="Quantity"
+          placeholder="0"
           className={`w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
         />
         {status === "error" && (

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useState } from "react";
+import Link from "next/link";
 
 import type { MarketItem, WorkspaceSession } from "../lib/pantry-types";
 import { Badge } from "./ui/badge";
@@ -60,9 +61,9 @@ function SessionList({ collapsed, sessions }: Readonly<{ collapsed: boolean; ses
   return (
     <div className="space-y-2">
       {sessions.map((session) => (
-        <button
+        <Link
           key={session.id ?? session.publicId ?? session.title}
-          type="button"
+          href={session.publicId ? `/order-list/${session.publicId}` : "#"}
           className={cn(
             "flex w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left transition-all duration-200",
             session.active
@@ -84,10 +85,10 @@ function SessionList({ collapsed, sessions }: Readonly<{ collapsed: boolean; ses
               <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">{session.updated}</span>
             </div>
             <div className="mt-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-              {session.isPublic === false ? "Private session" : "Public session"}
+              {session.isPublic === false ? "Private order list" : "Public order list"}
             </div>
           </div>
-        </button>
+        </Link>
       ))}
     </div>
   );
@@ -236,7 +237,7 @@ export function AppShell({
   const [accountOpen, setAccountOpen] = useState(false);
   const [themeMode, setThemeMode] = useState<ThemeMode>("system");
 
-  const sidebarTitle = active === "market" ? "Market" : "Sessions";
+  const sidebarTitle = active === "market" ? "Market" : "Order list";
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.14),_transparent_24%),radial-gradient(circle_at_bottom_right,_rgba(96,165,250,0.12),_transparent_24%),linear-gradient(180deg,_#060b16_0%,_#09111f_100%)] text-foreground">
@@ -280,7 +281,7 @@ export function AppShell({
                     )}
                   </div>
                   <p className="text-sm leading-6 text-muted-foreground">
-                    {active === "market" ? "Review catalog prices and item notes." : "Tap any session to open it."}
+                    {active === "market" ? "Review catalog prices and item notes." : "Tap any order list to open it."}
                   </p>
                 </div>
               )}

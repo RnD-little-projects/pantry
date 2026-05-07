@@ -27,6 +27,7 @@ export type SessionLineItem = {
 };
 
 export type OrderHistoryEntry = {
+  id: string;
   date: string;
   item: string;
   quantity: string;

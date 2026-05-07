@@ -30,6 +30,19 @@ function resolveMongoOptions() {
   } as const;
 }
 
+export async function verifyMongoConnection() {
+  const connection = await connectDB();
+  const db = connection.connection.db;
+
+  if (!db) {
+    throw new Error("MongoDB database connection is not available after connect.");
+  }
+
+  await db.admin().ping();
+  const dbName = connection.connection.name || process.env.MONGODB_DB?.trim() || "default";
+  console.log(`MongoDB connection verified: db=${dbName}`);
+}
+
 async function connectDB() {
   if (cached.conn) {
     return cached.conn;

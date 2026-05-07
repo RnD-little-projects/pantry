@@ -82,12 +82,12 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
 
   return (
     <AppShell active="overview" showSidebar={showSidebar} sessions={sessions} marketItems={marketItems}>
-      <div className="space-y-8 rounded-3xl border border-border/60 bg-card/80 p-6 shadow-sm">
-        <div className="rounded-3xl border border-border/60 bg-background/80 p-6">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="space-y-6">
+        <div className="px-1">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">{order.title}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Created {order.createdAtLabel}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Created {order.createdAtLabel}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
@@ -97,7 +97,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -124,14 +124,13 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                   Grand total
                 </TableCell>
                 <TableCell className="text-right font-semibold text-foreground">₱{order.total}</TableCell>
-                <TableCell />
               </TableRow>
             </TableBody>
           </Table>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-sm">
-          <div className="border-b border-border/60 px-6 py-4 bg-slate-950/5 text-sm font-semibold text-foreground">History</div>
+        <div className="overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-sm">
+          <div className="border-b border-border/60 px-6 py-4 bg-white/[0.02] text-sm font-semibold text-foreground">History</div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -143,7 +142,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
             </TableHeader>
             <TableBody>
               {historyItems.map((entry) => (
-                <TableRow key={`${entry.date}-${entry.item}`}>
+                <TableRow key={entry.id}>
                   <TableCell className="text-muted-foreground">{entry.date}</TableCell>
                   <TableCell>
                     <div className="font-medium text-foreground">{entry.item}</div>
