@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { saveProductAction, deleteProductAction, saveCategoryAction } from "./actions";
 
@@ -67,7 +66,7 @@ export function ProductManager({
     if (!newCategoryName) return;
     try {
       const result = await saveCategoryAction(newCategoryName);
-      if (result.success) {
+      if (result.success && result.id) {
         setCategories([...categories, { id: result.id, name: newCategoryName }]);
         setNewCategoryName("");
       }

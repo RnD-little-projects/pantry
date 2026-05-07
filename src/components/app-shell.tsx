@@ -159,7 +159,7 @@ function AccountMenu({
                   </Link>
                   <Link
                     href="/admin/products"
-                    className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-medium text-primary transition hover:bg-primary/10"
+                    className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-medium text-primary transition hover:bg-primary/5"
                     onClick={() => onOpenChange(false)}
                   >
                     <span>Manage Products</span>

@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getCategories, getOverviewSessions, getMarketItems, Product } from "@/lib/pantry-db";
+import { getCategories, getOverviewSessions, getMarketItems } from "@/lib/pantry-db";
 import { AppShell } from "@/components/app-shell";
 import { ProductManager } from "./ProductManager";
 import { connectMongo } from "@/lib/db/mongodb";

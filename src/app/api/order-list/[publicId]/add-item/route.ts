@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import { appendOrderItem } from "@/lib/pantry-db";
 import type { AddOrderItemRequest } from "@/lib/pantry-types";
 
-export async function POST(req: Request, context: { params: { publicId: string } }) {
+export async function POST(req: Request, context: { params: Promise<{ publicId: string }> }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -19,7 +19,7 @@ export async function POST(req: Request, context: { params: { publicId: string }
 
   const itemName = String(body.itemName ?? "").trim();
   const quantityLabel = String(body.quantityLabel ?? "").trim();
-  const publicId = context.params.publicId;
+  const { publicId } = await context.params;
 
   try {
     const item = await appendOrderItem(publicId, (session.user as any).id, itemName, quantityLabel);
