@@ -170,6 +170,36 @@ export async function getMarketItems(): Promise<MarketItem[]> {
   }));
 }
 
+async function getOrCreateProduct(itemName: string) {
+  const cleanItemName = String(itemName ?? "").trim();
+  const normalizedItemName = cleanItemName.toLowerCase();
+
+  let matchedProduct = await Product.findOne({
+    $or: [
+      { normalizedName: normalizedItemName },
+      { "aliases.value": normalizedItemName }
+    ],
+    active: true
+  });
+
+  if (!matchedProduct) {
+    const existing = await Product.findOne({ normalizedName: normalizedItemName });
+    if (existing) {
+      existing.active = true;
+      await existing.save();
+      matchedProduct = existing;
+    } else {
+      matchedProduct = await Product.create({
+        name: cleanItemName,
+        normalizedName: normalizedItemName,
+        active: true
+      });
+    }
+  }
+
+  return matchedProduct;
+}
+
 export async function getSharedOrder(publicId: string, userId?: string): Promise<SharedOrderView> {
   const ready = await canUseMongo();
   if (!ready) {
@@ -266,36 +296,12 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
   const parsedQuantity = parseInt(cleanQuantityLabel, 10);
   const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
 
-  // Case-insensitive product matching
-  const normalizedItemName = cleanItemName.toLowerCase();
-  let matchedProduct = await Product.findOne({
-    $or: [
-      { normalizedName: normalizedItemName },
-      { "aliases.value": normalizedItemName }
-    ],
-    active: true
-  });
-
-  if (!matchedProduct) {
-    // Check if it exists but is deactivated
-    const existing = await Product.findOne({ normalizedName: normalizedItemName });
-    if (existing) {
-      existing.active = true;
-      await existing.save();
-      matchedProduct = existing;
-    } else {
-      matchedProduct = await Product.create({
-        name: cleanItemName,
-        normalizedName: normalizedItemName,
-        active: true
-      });
-    }
-  }
+  const matchedProduct = await getOrCreateProduct(cleanItemName);
 
   const item = {
     productId: matchedProduct._id,
     itemName: matchedProduct.name,
-    normalizedItemName,
+    normalizedItemName: matchedProduct.normalizedName,
     quantity,
     quantityLabel: cleanQuantityLabel,
     unit: matchedProduct.unit || "",
@@ -314,10 +320,10 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     targetId: publicId,
     action: "item_add",
     after: {
-      itemName: item.itemName,
+      itemName: matchedProduct.name,
       quantityLabel: item.quantityLabel,
     },
-    note: `Added ${item.itemName}`,
+    note: `Added ${matchedProduct.name}`,
   });
 
   const inserted = order.items[order.items.length - 1];
@@ -554,6 +560,7 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
   });
 
   const parsedQuantity = parseInt(quantityLabel, 10);
+  const matchedProduct = await getOrCreateProduct(itemName);
   const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
 
   const newOrder = new Order({
@@ -564,10 +571,15 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     status: "draft",
     items: [
       {
-        itemName,
+        productId: matchedProduct._id,
+        itemName: matchedProduct.name,
+        normalizedItemName: matchedProduct.normalizedName,
         quantity,
         quantityLabel,
-        status: "draft",
+        unit: matchedProduct.unit || "",
+        unitPrice: matchedProduct.price,
+        lineTotal: typeof matchedProduct.price === "number" ? matchedProduct.price * quantity : 0,
+        status: typeof matchedProduct.price === "number" ? "priced" as const : "draft" as const,
       },
     ],
   });
@@ -581,10 +593,10 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     targetId: publicId,
     action: "item_add",
     after: {
-      itemName,
+      itemName: matchedProduct.name,
       quantityLabel,
     },
-    note: `Added ${itemName}`,
+    note: `Added ${matchedProduct.name}`,
   });
 
   await syncBackupToFile(publicId, userId);
@@ -654,13 +666,14 @@ export async function adminUpdateProduct(productId: string | null, data: Record<
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
 
-  const normalizedName = data.name.toLowerCase();
-  
-  const updateData = {
+  const updateData: Record<string, any> = {
     ...data,
-    normalizedName,
     active: true
   };
+
+  if (typeof data.name === "string") {
+    updateData.normalizedName = data.name.toLowerCase();
+  }
 
   // Convert comma-separated aliases to the schema format if it's a string
   if (typeof data.aliases === "string") {

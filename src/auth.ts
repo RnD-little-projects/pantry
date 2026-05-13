@@ -60,6 +60,60 @@ const authConfig = {
       : []),
   ],
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        await connectMongo();
+        
+        // Find by provider account ID or email
+        const existing = await User.findOne({
+          $or: [
+            { providerAccountId: account.providerAccountId },
+            { email: user.email?.toLowerCase() }
+          ]
+        });
+
+        if (!existing) {
+          const userCount = await User.countDocuments();
+          const isFirstUser = userCount === 0;
+          const allowFirstAdmin = process.env.ALLOW_FIRST_LOGIN_ADMIN === "true";
+          const role = isFirstUser && allowFirstAdmin ? "admin" : "author";
+
+          const newUser = await User.create({
+            username: user.name || user.email?.split("@")[0] || "google_user",
+            email: user.email?.toLowerCase(),
+            provider: "google",
+            providerAccountId: account.providerAccountId,
+            avatarUrl: user.image,
+            role,
+            isActive: true,
+          });
+          
+          user.id = String(newUser._id);
+          (user as any).role = newUser.role;
+          user.name = newUser.username;
+        } else {
+          user.id = String(existing._id);
+          (user as any).role = existing.role;
+          user.name = existing.username;
+
+          // Update existing user with Google details if not present
+          let changed = false;
+          if (!existing.providerAccountId) {
+            existing.providerAccountId = account.providerAccountId;
+            existing.provider = "google";
+            changed = true;
+          }
+          if (!existing.avatarUrl && user.image) {
+            existing.avatarUrl = user.image;
+            changed = true;
+          }
+          if (changed) {
+            await existing.save();
+          }
+        }
+      }
+      return true;
+    },
     async jwt({ token, user, account }) {
       if (user) {
         token.userId = user.id ?? undefined;

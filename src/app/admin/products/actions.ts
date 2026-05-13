@@ -50,3 +50,15 @@ export async function mergeProductsAction(sourceId: string, targetId: string) {
     return { success: false, error: String(error) };
   }
 }
+
+export async function updateProductCategoryAction(productId: string, categoryId: string | null) {
+  try {
+    await adminUpdateProduct(productId, { categoryId });
+    revalidatePath("/admin/products");
+    revalidatePath("/market-list");
+    return { success: true };
+  } catch (error) {
+    console.error("Action error:", error);
+    return { success: false, error: String(error) };
+  }
+}

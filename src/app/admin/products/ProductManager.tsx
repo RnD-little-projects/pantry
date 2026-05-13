@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { saveProductAction, deleteProductAction, saveCategoryAction, mergeProductsAction } from "./actions";
+import { saveProductAction, deleteProductAction, saveCategoryAction, mergeProductsAction, updateProductCategoryAction } from "./actions";
+import { cn } from "@/lib/utils";
 
 type Product = {
   id: string;
@@ -36,6 +37,7 @@ export function ProductManager({
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
 
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +94,23 @@ export function ProductManager({
     }
   };
 
+  const handleDrop = async (categoryId: string | null) => {
+    setDragOverCategoryId(null);
+    const productId = window.localStorage.getItem("draggingProductId");
+    if (!productId) return;
+    
+    window.localStorage.removeItem("draggingProductId");
+    
+    try {
+      const result = await updateProductCategoryAction(productId, categoryId);
+      if (result.success) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Failed to move product:", error);
+    }
+  };
+
   const categoriesWithProducts = categories.map(cat => ({
     ...cat,
     products: products.filter(p => p.categoryId === cat.id)
@@ -121,7 +140,16 @@ export function ProductManager({
         {[...categoriesWithProducts, { id: null, name: "Uncategorized", products: uncategorizedProducts }].map((group) => (
           <Card 
             key={group.id || "uncategorized"} 
-            className="flex flex-col h-[480px] overflow-hidden border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all hover:shadow-lg hover:border-border/60"
+            className={cn(
+              "flex flex-col h-[480px] border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all hover:shadow-lg hover:border-border/60",
+              dragOverCategoryId === group.id && "border-primary ring-2 ring-primary/20 bg-primary/5"
+            )}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOverCategoryId(group.id);
+            }}
+            onDragLeave={() => setDragOverCategoryId(null)}
+            onDrop={() => handleDrop(group.id)}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border/20 bg-muted/20">
@@ -153,22 +181,32 @@ export function ProductManager({
               ) : (
                 <div className="space-y-1.5">
                   {group.products.map((product) => (
-                    <div key={product.id} className="group relative">
-                      {/* Price Bubble (Visible after 1s hover) */}
-                      <div className="absolute left-1/2 -top-11 -translate-x-1/2 pointer-events-none opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 group-hover:delay-[1000ms] transition-all duration-300 ease-out z-50">
-                        <div className="relative bg-foreground text-background text-[10px] font-bold px-3 py-1.5 rounded-full shadow-2xl border border-foreground/10">
-                          ₱{product.price ?? "???"}
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45" />
+                    <div 
+                      key={product.id} 
+                      className="group relative"
+                      draggable
+                      onDragStart={(e) => {
+                        window.localStorage.setItem("draggingProductId", product.id);
+                        e.dataTransfer.setData("productId", product.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                    >
+                      <div 
+                        onClick={() => setEditingProduct(product)}
+                        className="flex items-center justify-between rounded-2xl px-3.5 py-2.5 transition-all hover:bg-primary/5 active:bg-primary/10 cursor-grab active:cursor-grabbing"
+                      >
+                        <div className="flex-1 flex items-center gap-3 truncate pr-3">
+                          <div className="text-xs font-semibold text-foreground/70 hover:text-primary transition-colors truncate">
+                            {product.name}
+                          </div>
+                          
+                          {/* Price Tag (Visible on hover) */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 shrink-0">
+                            <div className="bg-foreground text-background text-[9px] font-bold px-2 py-0.5 rounded-full shadow-lg border border-foreground/10">
+                              ₱{product.price ?? "—"}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="flex items-center justify-between rounded-2xl px-3.5 py-2.5 transition-all hover:bg-primary/5 active:bg-primary/10 cursor-pointer">
-                        <button 
-                          onClick={() => setEditingProduct(product)}
-                          className="flex-1 text-left text-xs font-semibold text-foreground/70 hover:text-primary transition-colors truncate pr-3"
-                        >
-                          {product.name}
-                        </button>
                         
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
@@ -200,9 +238,8 @@ export function ProductManager({
         ))}
       </div>
 
-      {/* Edit Product Modal/Overlay */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md border-border/70 bg-card shadow-2xl">
             <CardContent className="pt-6 space-y-4">
               <h3 className="text-lg font-semibold">{editingProduct.id ? 'Edit' : 'Add'} Product</h3>
@@ -263,7 +300,7 @@ export function ProductManager({
 
       {/* Merge Product Modal */}
       {mergingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
           <Card className="w-full max-w-md border-border/70 bg-card shadow-2xl">
             <CardContent className="pt-6 space-y-4">
               <h3 className="text-lg font-semibold text-amber-500 flex items-center gap-2">
