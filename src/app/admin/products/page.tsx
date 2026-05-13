@@ -13,30 +13,30 @@ export default async function AdminProductsPage() {
     redirect("/login");
   }
 
-  if ((session.user as any).role !== "admin") {
+  if ((session.user as Record<string, unknown>).role !== "admin") {
     redirect("/unauthorized");
   }
 
   await connectMongo();
   const [categories, sessions, marketItems, rawProducts] = await Promise.all([
     getCategories(),
-    getOverviewSessions(),
+    getOverviewSessions((session.user as Record<string, unknown>).id as string | undefined),
     getMarketItems(),
     ProductModel.find({ active: true }).populate("categoryId").lean(),
   ]);
 
-  const products = rawProducts.map((p: any) => ({
+  const products = rawProducts.map((p: Record<string, unknown>) => ({
     id: String(p._id),
-    name: p.name,
-    price: p.price,
-    notes: p.notes,
-    categoryId: p.categoryId ? String(p.categoryId._id) : null,
-    categoryName: p.categoryId ? p.categoryId.name : "Uncategorized",
-    aliases: p.aliases ? p.aliases.map((a: any) => a.value).join(", ") : "",
+    name: p.name as string,
+    price: p.price as number | null,
+    notes: p.notes as string,
+    categoryId: p.categoryId ? String((p.categoryId as Record<string, unknown>)._id) : null,
+    categoryName: p.categoryId ? (p.categoryId as Record<string, unknown>).name as string : "Uncategorized",
+    aliases: p.aliases ? (p.aliases as Record<string, unknown>[]).map((a: Record<string, unknown>) => a.value as string).join(", ") : "",
   }));
 
   return (
-    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined}>
       <div className="space-y-6">
         <div className="px-1 flex justify-between items-end">
           <div>
@@ -47,7 +47,7 @@ export default async function AdminProductsPage() {
 
         <ProductManager 
           initialProducts={products} 
-          initialCategories={categories.map((c: any) => ({ id: String(c._id), name: c.name }))} 
+          initialCategories={categories.map((c: Record<string, unknown>) => ({ id: String(c._id), name: c.name as string }))} 
         />
       </div>
     </PantryLayout>

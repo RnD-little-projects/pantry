@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchUserOrdersAction } from "./actions";
 import type { WorkspaceSession } from "@/lib/pantry-types";
@@ -53,9 +54,9 @@ export function UserOrderList({ users }: { users: UserWithOrders[] }) {
             onClick={() => toggleUser(user.id)}
           >
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-bold">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary font-bold overflow-hidden relative">
                 {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt={user.username} className="h-full w-full rounded-full object-cover" />
+                  <Image src={user.avatarUrl} alt={user.username} fill className="object-cover" unoptimized />
                 ) : (
                   user.username.charAt(0).toUpperCase()
                 )}

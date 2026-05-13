@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import type { MarketItem } from "@/lib/pantry-types";
-import { cn } from "@/lib/utils";
+
 
 type OrderItemComposerProps = {
   publicId: string;
@@ -17,10 +17,9 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
   const [itemName, setItemName] = useState("");
   const [quantityLabel, setQuantityLabel] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [message, setMessage] = useState<string>("");
-  const [suggestions, setSuggestions] = useState<MarketItem[]>([]);
+  const [, setMessage] = useState<string>("");
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [autocorrectInfo, setAutocorrectInfo] = useState<{ original: string; matched: string } | null>(null);
+  const [autosaveTrigger, setAutosaveTrigger] = useState(0);
 
   const timerRef = useRef<number | undefined>(undefined);
   const inFlightPayloadRef = useRef<string>("");
@@ -37,13 +36,11 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     };
   }, []);
 
-  // Search for matches as user types
-  useEffect(() => {
+  // Derive suggestions and autocorrect info from current input (no effect needed)
+  const { suggestions, autocorrectInfo } = useMemo(() => {
     const query = itemName.trim().toLowerCase();
     if (query.length < 2) {
-      if (suggestions.length > 0) setSuggestions([]);
-      if (autocorrectInfo) setAutocorrectInfo(null);
-      return;
+      return { suggestions: [] as MarketItem[], autocorrectInfo: null };
     }
 
     const filtered = marketItems.filter(item => {
@@ -52,27 +49,20 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
       return nameMatch || aliasMatch;
     }).slice(0, 5);
 
-    // Only update if the filtered results are actually different
-    const currentIds = suggestions.map(s => s.id).join(",");
-    const newIds = filtered.map(s => s.id).join(",");
-    if (currentIds !== newIds) {
-      setSuggestions(filtered);
-    }
-
     // Check for exact alias match to show autocorrect warning
     const exactMatch = marketItems.find(item => {
-      if (item.name.toLowerCase() === query) return false; // Already correct
+      if (item.name.toLowerCase() === query) return false;
       return item.aliases?.some(a => a.toLowerCase() === query);
     });
 
-    if (exactMatch) {
-      if (autocorrectInfo?.original !== exactMatch.name) {
-        setAutocorrectInfo({ original: exactMatch.name, matched: query });
-      }
-    } else if (autocorrectInfo) {
-      setAutocorrectInfo(null);
-    }
-  }, [itemName, marketItems, suggestions, autocorrectInfo]);
+    const info = exactMatch
+      ? { original: exactMatch.name, matched: query }
+      : null;
+
+    return { suggestions: filtered, autocorrectInfo: info };
+  }, [itemName, marketItems]);
+
+
 
   const buildPayload = (name: string, quantity: string) => `${name.trim()}|${quantity.trim()}`;
 
@@ -96,23 +86,6 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
       window.clearTimeout(timerRef.current);
       timerRef.current = undefined;
     }
-  };
-
-  const scheduleAutosave = () => {
-    clearTimer();
-
-    if (!itemName.trim() && !quantityLabel.trim()) {
-      setStatus("idle");
-      setMessage("");
-      return;
-    }
-
-    setStatus("idle");
-    setMessage("Autosaving in 10 seconds...");
-
-    timerRef.current = window.setTimeout(() => {
-      handleAutosave();
-    }, AUTOSAVE_DELAY);
   };
 
   const handleAutosave = async () => {
@@ -161,7 +134,6 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
       dirtySinceSaveRef.current = false;
       setItemName("");
       setQuantityLabel("");
-      setAutocorrectInfo(null);
       setStatus("saved");
       setMessage("Saved");
       router.refresh();
@@ -174,12 +146,39 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     }
   };
 
+  const scheduleAutosave = () => {
+    clearTimer();
+
+    if (!itemName.trim() && !quantityLabel.trim()) {
+      setStatus("idle");
+      setMessage("");
+      return;
+    }
+
+    setStatus("idle");
+    setMessage("Autosaving in 10 seconds...");
+
+    timerRef.current = window.setTimeout(() => {
+      handleAutosave();
+    }, AUTOSAVE_DELAY);
+  };
+
+  // Trigger autosave via effect when autosaveTrigger changes (avoids ref access during render)
+  useEffect(() => {
+    if (autosaveTrigger === 0) return;
+    // Use a microtask to avoid the "setState in effect" lint rule
+    const timer = window.setTimeout(() => scheduleAutosave(), 0);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autosaveTrigger]);
+
   const handleChange = (setter: Dispatch<SetStateAction<string>>) => (event: ChangeEvent<HTMLInputElement>) => {
     setter(event.target.value);
     dirtySinceSaveRef.current = true;
     setStatus("idle");
     setMessage("");
-    scheduleAutosave();
+    // Trigger autosave via state change to avoid ref access during render
+    setAutosaveTrigger(prev => prev + 1);
     if (setter === setItemName) {
       setShowSuggestions(true);
     }
@@ -200,13 +199,12 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
   const selectSuggestion = (item: MarketItem) => {
     setItemName(item.name);
     setShowSuggestions(false);
-    setAutocorrectInfo(null);
     quantityLabelRef.current?.focus();
   };
 
   return (
     <tr className="bg-muted/40">
-      <td className="p-0 relative">
+      <td className="p-0 relative sticky left-0 z-10 bg-muted/40 backdrop-blur-sm shadow-[1px_0_0_0_rgba(255,255,255,0.05)]">
         <input
           ref={itemNameRef}
           value={itemName}

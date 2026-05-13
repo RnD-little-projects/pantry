@@ -26,10 +26,10 @@ export async function POST(req: Request) {
   }
 
   try {
-    const item = await updateOrderItemQuantity(publicId, (session.user as any).id, itemIndex, quantityLabel);
+    const item = await updateOrderItemQuantity(publicId, (session.user as Record<string, unknown>).id as string, itemIndex, quantityLabel);
     return NextResponse.json({ item });
   } catch (error) {
-    const code = (error as any)?.code;
+    const code = (error as Record<string, unknown>)?.code;
     if (code === "QUANTITY_LABEL_TOO_SHORT") {
       return NextResponse.json({ error: (error as Error).message }, { status: 400 });
     }

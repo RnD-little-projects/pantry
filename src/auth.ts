@@ -60,7 +60,7 @@ const authConfig = {
       : []),
   ],
   callbacks: {
-    async jwt({ token, user, account }: { token: any; user?: any; account?: any }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.userId = user.id ?? undefined;
         token.username = user.name ?? undefined;
@@ -73,7 +73,7 @@ const authConfig = {
 
       return token;
     },
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }

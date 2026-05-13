@@ -11,11 +11,18 @@ if (!MONGODB_URI) {
  * in development. This prevents connections from growing exponentially
  * during API Route usage.
  */
-let cached = (global as any).mongoose;
+const globalWithMongoose = globalThis as typeof globalThis & {
+  mongoose?: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null };
+};
+
+let cached = globalWithMongoose.mongoose;
 
 if (!cached) {
-  cached = (global as any).mongoose = { conn: null, promise: null };
+  cached = globalWithMongoose.mongoose = { conn: null, promise: null };
 }
+
+// Ensure cached is not undefined for the rest of the file
+const safeCached = cached!;
 
 function resolveMongoOptions() {
   const dbName = process.env.MONGODB_DB?.trim();
@@ -44,26 +51,26 @@ export async function verifyMongoConnection() {
 }
 
 async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
+  if (safeCached.conn) {
+    return safeCached.conn;
   }
 
-  if (!cached.promise) {
+  if (!safeCached.promise) {
     const opts = resolveMongoOptions();
 
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongooseInstance) => {
+    safeCached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongooseInstance) => {
       return mongooseInstance;
     });
   }
 
   try {
-    cached.conn = await cached.promise;
+    safeCached.conn = await safeCached.promise;
   } catch (e) {
-    cached.promise = null;
+    safeCached.promise = null;
     throw e;
   }
 
-  return cached.conn;
+  return safeCached.conn;
 }
 
 export { connectDB as connectMongo };

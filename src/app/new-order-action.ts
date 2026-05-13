@@ -17,7 +17,7 @@ export async function startOrderAction(formData: FormData) {
     throw new Error("Missing item name or quantity");
   }
 
-  const publicId = await createNewOrder((session.user as any).id, itemName, quantityLabel);
+  const publicId = await createNewOrder((session.user as Record<string, unknown>).id as string, itemName, quantityLabel);
   
   redirect(`/order-list/${publicId}`);
 }

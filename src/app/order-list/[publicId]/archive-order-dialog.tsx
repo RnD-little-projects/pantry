@@ -80,7 +80,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
       setReceiptFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
       setReceiptUrl(""); // Clear URL if file is selected
-    } catch (error) {
+    } catch {
       toast("Failed to compress image", "error");
     }
   };
@@ -196,6 +196,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
               </div>
             ) : (
               <div className="relative aspect-video overflow-hidden rounded-xl border border-border/60 bg-muted/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={previewUrl} 
                   alt="Receipt Preview" 

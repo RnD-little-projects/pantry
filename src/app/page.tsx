@@ -22,7 +22,7 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
   const resolvedSearchParams = await searchParams;
   const isExplicitNew = resolvedSearchParams?.new === "true";
 
-  const publicId = await getLatestOrderPublicId((session?.user as any)?.id);
+  const publicId = await getLatestOrderPublicId((session?.user as Record<string, unknown>)?.id as string | undefined);
   
   // If user has orders and didn't explicitly click "New Session", redirect to latest
   if (publicId && !isExplicitNew) {
@@ -30,19 +30,19 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
   }
 
   const [sessions, marketItems] = await Promise.all([
-    getOverviewSessions(),
+    getOverviewSessions((session?.user as Record<string, unknown>)?.id as string | undefined),
     getMarketItems(),
   ]);
 
   return (
-    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined}>
       <div className="space-y-6">
         <div className="px-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Start a fresh order</h1>
           <p className="mt-2 text-sm text-muted-foreground">Add your first item to begin a new private order list.</p>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-sm w-full overflow-x-auto">
           <form action={startOrderAction}>
             <Table>
               <TableHeader>

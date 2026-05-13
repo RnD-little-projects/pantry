@@ -38,7 +38,7 @@ export async function GET(
     } catch {
       return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

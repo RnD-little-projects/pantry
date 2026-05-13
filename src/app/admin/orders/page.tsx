@@ -11,18 +11,18 @@ export default async function AdminOrdersPage() {
     redirect("/login");
   }
 
-  if ((session.user as any).role !== "admin") {
+  if ((session.user as Record<string, unknown>).role !== "admin") {
     redirect("/unauthorized");
   }
 
   const [users, sessions, marketItems] = await Promise.all([
     getAllUsersWithOrderCounts(),
-    getOverviewSessions(),
+    getOverviewSessions((session.user as Record<string, unknown>).id as string | undefined),
     getMarketItems(),
   ]);
 
   return (
-    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined}>
       <div className="space-y-6">
         <div className="px-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Admin: User Orders</h1>

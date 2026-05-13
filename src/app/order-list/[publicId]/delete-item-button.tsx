@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Trash2, Loader2, AlertTriangle } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { useToast } from "@/components/ui/toast";
 import { Dialog } from "@/components/ui/dialog";
 
@@ -53,7 +53,7 @@ export function DeleteItemButton({ publicId, itemIndex, itemName = "this item" }
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
         onClick={() => setShowConfirm(true)}
         disabled={isDeleting}
       >

@@ -3,10 +3,10 @@
 import { adminUpdateProduct, adminDeleteProduct, adminUpsertCategory, adminMergeProducts } from "@/lib/pantry-db";
 import { revalidatePath } from "next/cache";
 
-export async function saveProductAction(data: any) {
+export async function saveProductAction(data: Record<string, unknown>) {
   try {
     const { id, ...rest } = data;
-    await adminUpdateProduct(id || null, rest);
+    await adminUpdateProduct((id as string | null) || null, rest);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
     return { success: true };

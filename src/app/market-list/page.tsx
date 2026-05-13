@@ -14,10 +14,13 @@ export default async function MarketListPage() {
     redirect("/login");
   }
 
-  const [marketItems, sessions] = await Promise.all([getMarketItems(), getOverviewSessions()]);
+  const [marketItems, sessions] = await Promise.all([
+    getMarketItems(), 
+    getOverviewSessions((session.user as Record<string, unknown>).id as string | undefined)
+  ]);
 
   return (
-    <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as any).role}>
+    <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as Record<string, unknown>).role as string | undefined}>
       <Card>
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

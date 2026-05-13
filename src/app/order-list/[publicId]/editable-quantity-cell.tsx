@@ -9,9 +9,11 @@ type EditableQuantityCellProps = {
   itemIndex: number;
   quantityLabel: string;
   isCreator: boolean;
+  /** "cell" renders a <td>, "inline" renders a <div>. Default: "cell" */
+  variant?: "cell" | "inline";
 };
 
-export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCreator }: EditableQuantityCellProps) {
+export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCreator, variant = "cell" }: EditableQuantityCellProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [value, setValue] = useState(quantityLabel);
@@ -53,25 +55,33 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
     }
   };
 
+  const inner = (
+    <div className="relative">
+      <input
+        type="number"
+        value={value}
+        onChange={(event) => {
+          setValue(event.target.value);
+          setStatus("idle");
+        }}
+        onBlur={handleBlur}
+        disabled={!isCreator}
+        placeholder="0"
+        className={`w-full border-0 bg-transparent px-2 py-1 text-center text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
+      />
+      {status === "error" && (
+        <div className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-destructive">!</div>
+      )}
+    </div>
+  );
+
+  if (variant === "inline") {
+    return inner;
+  }
+
   return (
     <td className="p-0">
-      <div className="relative">
-        <input
-          type="number"
-          value={value}
-          onChange={(event) => {
-            setValue(event.target.value);
-            setStatus("idle");
-          }}
-          onBlur={handleBlur}
-          disabled={!isCreator}
-          placeholder="0"
-          className={`w-full border-0 bg-transparent px-2 py-3 text-center text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
-        />
-        {status === "error" && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">!</div>
-        )}
-      </div>
+      {inner}
     </td>
   );
 }

@@ -33,11 +33,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const item = await appendOrderItem(publicId, (session.user as any).id, itemName, quantityLabel);
+    const item = await appendOrderItem(publicId, (session.user as Record<string, unknown>).id as string, itemName, quantityLabel);
     return NextResponse.json({ item });
   } catch (error) {
     console.error("Add-item route error:", error);
-    const code = (error as any)?.code;
+    const code = (error as Record<string, unknown>)?.code;
     if (code === "ITEM_NAME_TOO_SHORT" || code === "QUANTITY_LABEL_TOO_SHORT") {
       return NextResponse.json({ error: (error as Error).message }, { status: 400 });
     }

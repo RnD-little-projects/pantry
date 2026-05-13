@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   let session;
   try {
     session = await auth();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Unable to authenticate request" }, { status: 500 });
   }
 
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    await undoRemoveOrderItem(publicId, (session.user as any).id, auditLogId);
+    await undoRemoveOrderItem(publicId, (session.user as Record<string, unknown>).id as string, auditLogId);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Undo-item route error:", error);

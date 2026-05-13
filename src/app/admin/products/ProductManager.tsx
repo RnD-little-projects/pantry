@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { saveProductAction, deleteProductAction, saveCategoryAction, mergeProductsAction } from "./actions";
 
@@ -21,7 +20,7 @@ type Category = {
   name: string;
 };
 
-import { Plus, Merge, Trash2, Settings2 } from "lucide-react";
+import { Plus, Merge, Trash2 } from "lucide-react";
 
 export function ProductManager({ 
   initialProducts, 
@@ -268,7 +267,7 @@ export function ProductManager({
           <Card className="w-full max-w-md border-border/70 bg-card shadow-2xl">
             <CardContent className="pt-6 space-y-4">
               <h3 className="text-lg font-semibold text-amber-500 flex items-center gap-2">
-                Merge "{mergingProduct.name}"
+                Merge &ldquo;{mergingProduct.name}&rdquo;
               </h3>
               <p className="text-sm text-muted-foreground">
                 This will move all aliases and order history from <strong>{mergingProduct.name}</strong> into another product, then deactivate this one.

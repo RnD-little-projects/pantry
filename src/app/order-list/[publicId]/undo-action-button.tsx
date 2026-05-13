@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Undo2, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+
 import { useToast } from "@/components/ui/toast";
 
 type UndoActionButtonProps = {

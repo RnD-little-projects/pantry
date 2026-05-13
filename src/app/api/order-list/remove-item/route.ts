@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   let session;
   try {
     session = await auth();
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Unable to authenticate request" }, { status: 500 });
   }
 
@@ -28,11 +28,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    await removeOrderItem(publicId, (session.user as any).id, itemIndex);
+    await removeOrderItem(publicId, (session.user as Record<string, unknown>).id as string, itemIndex);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Remove-item route error:", error);
-    const code = (error as any)?.code;
+    const code = (error as Record<string, unknown>)?.code;
     if (code === "FORBIDDEN") {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }

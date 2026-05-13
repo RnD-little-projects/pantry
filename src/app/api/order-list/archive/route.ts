@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     }
 
     // Check if user is the author
-    if (String(order.authorId) !== String((session.user as any).id)) {
+    if (String(order.authorId) !== String((session.user as Record<string, unknown>).id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
     // Log the action
     await AuditLog.create({
-      actorId: (session.user as any).id,
+      actorId: (session.user as Record<string, unknown>).id as string,
       targetType: "order",
       targetId: publicId,
       action: "order_archive",

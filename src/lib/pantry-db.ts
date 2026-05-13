@@ -17,7 +17,7 @@ type LeanOrderItem = {
 type LeanOrder = {
   _id?: unknown;
   publicId: string;
-  authorId?: any;
+  authorId?: unknown;
   title?: string | null;
   items?: LeanOrderItem[] | null;
   status?: "draft" | "finalized" | "paid" | "unpaid" | "archived" | null;
@@ -28,25 +28,9 @@ type LeanOrder = {
   isPublic?: boolean | null;
 };
 
-type LeanProduct = {
-  _id?: unknown;
-  name: string;
-  price?: number | null;
-  active?: boolean | null;
-  notes?: string | null;
-};
+// LeanProduct used implicitly via lean() queries
 
-type LeanAuditLog = {
-  createdAt?: Date | string | number | null;
-  action: string;
-  note?: string | null;
-  after?: {
-    itemName?: string | null;
-    productName?: string | null;
-    quantityLabel?: string | null;
-    quantity?: string | number | null;
-  } | null;
-};
+// LeanAuditLog used implicitly via lean() queries
 
 function formatPeso(amount: number | null) {
   if (amount === null || Number.isNaN(amount)) {
@@ -95,13 +79,17 @@ async function canUseMongo() {
   }
 }
 
-export async function getOverviewSessions(): Promise<WorkspaceSession[]> {
+export async function getOverviewSessions(userId?: string): Promise<WorkspaceSession[]> {
   const ready = await canUseMongo();
   if (!ready) {
     return [];
   }
 
-  const orders = await Order.find({}, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1, isPublic: 1 })
+  const query = userId 
+    ? { $or: [{ isPublic: true }, { authorId: userId }] }
+    : { isPublic: true };
+
+  const orders = await Order.find(query, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1, isPublic: 1 })
     .sort({ updatedAt: -1 })
     .limit(6)
     .lean();
@@ -129,13 +117,13 @@ export async function getMarketItems(): Promise<MarketItem[]> {
     .sort({ updatedAt: -1 })
     .lean();
 
-  return products.map((product: any, index: number) => ({
+  return products.map((product: Record<string, unknown>, index: number) => ({
     id: String(product._id ?? index),
-    name: product.name,
-    price: formatPeso(product.price ?? null),
-    status: product.active ? (product.price === null ? "Draft" : "Active") : "Archived",
-    note: product.notes || (product.active ? "" : "Archived"),
-    aliases: Array.isArray(product.aliases) ? product.aliases.map((a: any) => a.value) : [],
+    name: String(product.name ?? ""),
+    price: formatPeso(product.price as number | null ?? null),
+    status: (product.active as boolean | null) ? (product.price === null ? "Draft" : "Active") : "Archived",
+    note: String(product.notes || ((product.active as boolean | null) ? "" : "Archived")),
+    aliases: Array.isArray(product.aliases) ? product.aliases.map((a: Record<string, unknown>) => a.value as string) : [],
   }));
 }
 
@@ -145,22 +133,26 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     throw new Error("DATABASE_NOT_READY");
   }
 
-  const order = (await Order.findOne({ publicId }).populate("items.productId").lean()) as any;
+  const order = (await Order.findOne({ publicId }).populate("items.productId").lean()) as Record<string, unknown> | null;
   if (!order) {
     throw new Error("ORDER_NOT_FOUND");
   }
 
-  const isAuthor = !!(userId && order.authorId && String(order.authorId) === String(userId));
+  const orderAuthorId = order.authorId ? String(order.authorId) : null;
+  const isAuthor = !!(userId && orderAuthorId && orderAuthorId === String(userId));
+  
   if (order.isPublic !== true && !isAuthor) {
     throw new Error("ORDER_NOT_PUBLIC");
   }
 
-  const items = Array.isArray(order.items)
-    ? order.items.map((item: any, index: number) => {
+  const orderItems = order.items as Record<string, unknown>[] | null;
+  const items = Array.isArray(orderItems)
+    ? orderItems.map((item: Record<string, unknown>, index: number) => {
         const quantityLabel = item.quantityLabel ?? `${item.quantity ?? 0}${item.unit ? ` ${item.unit}` : ""}`.trim();
         
         // Use the latest product price if available, fallback to stored unitPrice
-        const productPrice = item.productId && typeof item.productId.price === "number" ? item.productId.price : null;
+        const populatedProduct = item.productId as Record<string, unknown> | null;
+        const productPrice = populatedProduct && typeof populatedProduct === "object" && typeof populatedProduct.price === "number" ? populatedProduct.price : null;
         const unitPrice = productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : null);
         
         const quantity = typeof item.quantity === "number" ? item.quantity : 1;
@@ -168,30 +160,30 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
 
         return {
           id: String(item._id ?? index),
-          itemName: item.itemName || "Unnamed item",
-          quantityLabel,
+          itemName: (item.itemName as string) || "Unnamed item",
+          quantityLabel: quantityLabel as string,
           unitPrice,
           lineTotal,
-          status: item.status ?? "draft",
+          status: (item.status as "draft" | "priced" | "finalized") ?? "draft",
         };
       })
     : [];
 
-  const subtotal = items.reduce((sum: number, item: any) => sum + item.lineTotal, 0);
+  const subtotal = items.reduce((sum: number, item: { lineTotal: number }) => sum + item.lineTotal, 0);
   const total = typeof order.total === "number" && order.status !== "draft" ? order.total : subtotal;
 
   return {
-    publicId: order.publicId,
-    title: order.title || `Order ${order.publicId}`,
-    createdAtLabel: formatRelativeDate(order.createdAt),
-    updatedAtLabel: formatRelativeDate(order.updatedAt),
-    archivedAtLabel: order.archivedAt ? formatRelativeDate(order.archivedAt) : null,
+    publicId: order.publicId as string,
+    title: (order.title as string | null) || `Order ${order.publicId as string}`,
+    createdAtLabel: formatRelativeDate(order.createdAt as Date | string | number),
+    updatedAtLabel: formatRelativeDate(order.updatedAt as Date | string | number),
+    archivedAtLabel: order.archivedAt ? formatRelativeDate(order.archivedAt as Date | string | number) : null,
     items,
     subtotal,
     total,
-    receiptUrl: order.receiptUrl || null,
+    receiptUrl: (order.receiptUrl as string) || null,
     isPublic: order.isPublic !== false,
-    status: order.status ?? "draft",
+    status: (order.status as "draft" | "finalized" | "paid" | "unpaid" | "archived") ?? "draft",
     isAuthor,
   };
 }
@@ -207,13 +199,13 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
 
   if (cleanItemName.length < 2) {
     const error = new Error("Item name must be at least 2 characters");
-    (error as any).code = "ITEM_NAME_TOO_SHORT";
+    (error as Error & { code?: string }).code = "ITEM_NAME_TOO_SHORT";
     throw error;
   }
 
   if (cleanQuantityLabel.length < 1) {
     const error = new Error("Quantity label is required");
-    (error as any).code = "QUANTITY_LABEL_TOO_SHORT";
+    (error as Error & { code?: string }).code = "QUANTITY_LABEL_TOO_SHORT";
     throw error;
   }
 
@@ -224,7 +216,7 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
 
   if (!order.authorId || String(order.authorId) !== String(userId)) {
     const error = new Error("Forbidden");
-    (error as any).code = "FORBIDDEN";
+    (error as Error & { code?: string }).code = "FORBIDDEN";
     throw error;
   }
 
@@ -305,7 +297,7 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
   const cleanQuantityLabel = String(quantityLabel ?? "").trim();
   if (cleanQuantityLabel.length < 1) {
     const error = new Error("Quantity label is required");
-    (error as any).code = "QUANTITY_LABEL_TOO_SHORT";
+    (error as Error & { code?: string }).code = "QUANTITY_LABEL_TOO_SHORT";
     throw error;
   }
 
@@ -316,17 +308,17 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
 
   if (!order.authorId || String(order.authorId) !== String(userId)) {
     const error = new Error("Forbidden");
-    (error as any).code = "FORBIDDEN";
+    (error as Error & { code?: string }).code = "FORBIDDEN";
     throw error;
   }
 
   if (!Array.isArray(order.items) || itemIndex < 0 || itemIndex >= order.items.length) {
     const error = new Error("ITEM_NOT_FOUND");
-    (error as any).code = "ITEM_NOT_FOUND";
+    (error as Error & { code?: string }).code = "ITEM_NOT_FOUND";
     throw error;
   }
 
-  const item = order.items[itemIndex] as any;
+  const item = order.items[itemIndex] as Record<string, unknown>;
   const oldQuantityLabel = String(item.quantityLabel ?? "").trim();
   item.quantityLabel = cleanQuantityLabel;
 
@@ -373,13 +365,13 @@ export async function removeOrderItem(publicId: string, userId: string, itemInde
 
   if (!order.authorId || String(order.authorId) !== String(userId)) {
     const error = new Error("Forbidden");
-    (error as any).code = "FORBIDDEN";
+    (error as Error & { code?: string }).code = "FORBIDDEN";
     throw error;
   }
 
   if (!Array.isArray(order.items) || itemIndex < 0 || itemIndex >= order.items.length) {
     const error = new Error("ITEM_NOT_FOUND");
-    (error as any).code = "ITEM_NOT_FOUND";
+    (error as Error & { code?: string }).code = "ITEM_NOT_FOUND";
     throw error;
   }
 
@@ -422,7 +414,7 @@ export async function undoRemoveOrderItem(publicId: string, userId: string, audi
     throw new Error("FORBIDDEN");
   }
 
-  const { fullItem, index } = auditLog.before as any;
+  const { fullItem, index } = auditLog.before as { fullItem: Record<string, unknown>; index: number };
   
   // Re-insert the item at the original index
   order.items.splice(index, 0, fullItem);
@@ -464,16 +456,16 @@ export async function getOrderHistory(publicId: string): Promise<OrderHistoryEnt
     return [];
   }
 
-  return auditLogs.map((entry: any) => {
-    const after = entry.after ?? {};
-    const before = entry.before ?? {};
+  return auditLogs.map((entry: Record<string, unknown>) => {
+    const after = (entry.after ?? {}) as Record<string, unknown>;
+    const before = (entry.before ?? {}) as Record<string, unknown>;
     return {
       id: String(entry._id),
-      date: new Date(entry.createdAt ?? Date.now()).toISOString().slice(0, 10),
-      item: after.itemName || before.itemName || after.productName || entry.note || "Order update",
+      date: new Date((entry.createdAt as string | number | Date) ?? Date.now()).toISOString().slice(0, 10),
+      item: String(after.itemName || before.itemName || after.productName || entry.note || "Order update"),
       quantity: String(after.quantityLabel || before.quantityLabel || after.quantity || "-"),
-      action: entry.action.replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase()),
-      rawAction: entry.action,
+      action: String(entry.action).replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase()),
+      rawAction: String(entry.action),
     };
   });
 }
@@ -514,7 +506,7 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     publicId,
     authorId: userId,
     title: dateStr,
-    isPublic: false,
+    isPublic: true,
     status: "draft",
     items: [
       {
@@ -549,14 +541,14 @@ export async function getAllUsersWithOrderCounts() {
 
   const users = await User.find({}, { username: 1, email: 1, avatarUrl: 1, role: 1 }).lean();
   
-  const userList = await Promise.all(users.map(async (user: any) => {
+  const userList = await Promise.all(users.map(async (user: Record<string, unknown>) => {
     const orderCount = await Order.countDocuments({ authorId: user._id });
     return {
       id: String(user._id),
-      username: user.username,
-      email: user.email,
-      avatarUrl: user.avatarUrl,
-      role: user.role,
+      username: String(user.username ?? ""),
+      email: (user.email as string | null) ?? null,
+      avatarUrl: (user.avatarUrl as string | null) ?? null,
+      role: String(user.role ?? "author"),
       orderCount
     };
   }));
@@ -572,16 +564,16 @@ export async function getOrdersByUser(userId: string): Promise<WorkspaceSession[
     .sort({ updatedAt: -1 })
     .lean();
 
-  return orders.map((order: any, index: number) => ({
+  return orders.map((order: Record<string, unknown>) => ({
     id: String(order._id),
-    publicId: order.publicId,
-    title: order.title || `Order ${order.publicId}`,
+    publicId: order.publicId as string | undefined,
+    title: (order.title as string | null) || `Order ${order.publicId as string}`,
     preview: order.status === "draft" ? "Draft" : order.status === "paid" ? "Paid" : "Ready",
     items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
-    updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
+    updated: formatRelativeDate((order.updatedAt ?? order.createdAt) as string | number | Date),
     active: false,
     isPublic: order.isPublic !== false,
-    status: order.status || "draft",
+    status: (order.status as string) || "draft",
   }));
 }
 
@@ -603,7 +595,7 @@ export async function adminUpsertCategory(name: string) {
   );
 }
 
-export async function adminUpdateProduct(productId: string | null, data: any) {
+export async function adminUpdateProduct(productId: string | null, data: Record<string, unknown>) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
 
@@ -665,12 +657,12 @@ export async function adminMergeProducts(sourceId: string, targetId: string) {
   
   // Add source's existing aliases
   if (Array.isArray(source.aliases)) {
-    source.aliases.forEach((a: any) => aliasValues.add(a.value));
+    source.aliases.forEach((a: Record<string, unknown>) => aliasValues.add(a.value as string));
   }
   
   // Add target's existing aliases
   if (Array.isArray(target.aliases)) {
-    target.aliases.forEach((a: any) => aliasValues.add(a.value));
+    target.aliases.forEach((a: Record<string, unknown>) => aliasValues.add(a.value as string));
   }
 
   // Build new aliases array for target, excluding target's own name
