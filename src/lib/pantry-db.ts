@@ -1,4 +1,6 @@
 import { AuditLog, Order, Product, User, Category } from "@/models";
+import fs from "fs";
+import path from "path";
 
 import { connectMongo } from "./db/mongodb";
 import type { MarketItem, OrderHistoryEntry, SharedOrderView, WorkspaceSession } from "./pantry-types";
@@ -64,6 +66,47 @@ function formatRelativeDate(value: Date | string | number | null | undefined) {
 
   const days = Math.round(hours / 24);
   return `${days}d ago`;
+}
+
+async function syncBackupToFile(publicId: string, userId: string) {
+  const ready = await canUseMongo();
+  if (!ready) return;
+
+  try {
+    const user = await User.findById(userId, { username: 1 }).lean();
+    if (!user) return;
+
+    const order = await Order.findOne({ publicId, authorId: userId }).lean();
+    if (!order) return;
+
+    const username = String(user.username || "unknown").replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    const orderTitle = String(order.title || order.publicId).replace(/[^a-z0-9]/gi, "-").toLowerCase();
+    
+    const inventory: Record<string, number> = {};
+    if (Array.isArray(order.items)) {
+      order.items.forEach((item: any) => {
+        const name = item.itemName || "Unnamed Item";
+        const qty = typeof item.quantity === "number" ? item.quantity : 0;
+        inventory[name] = (inventory[name] || 0) + qty;
+      });
+    }
+
+    const lines = Object.entries(inventory)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, qty]) => `${name}: ${qty}`);
+
+    const content = lines.join("\n");
+    const userDir = path.join(process.cwd(), "storage", username);
+    
+    if (!fs.existsSync(userDir)) {
+      fs.mkdirSync(userDir, { recursive: true });
+    }
+    
+    const filePath = path.join(userDir, `${orderTitle}-${publicId}.txt`);
+    fs.writeFileSync(filePath, content, "utf8");
+  } catch (error) {
+    console.error("Backup failed:", error);
+  }
 }
 
 async function canUseMongo() {
@@ -278,7 +321,7 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
   });
 
   const inserted = order.items[order.items.length - 1];
-  return {
+  const result = {
     id: String(inserted._id ?? order.items.length - 1),
     itemName: inserted.itemName,
     quantityLabel: inserted.quantityLabel,
@@ -286,6 +329,9 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     lineTotal: inserted.lineTotal ?? 0,
     status: inserted.status ?? "draft",
   };
+
+  await syncBackupToFile(publicId, userId);
+  return result;
 }
 
 export async function updateOrderItemQuantity(publicId: string, userId: string, itemIndex: number, quantityLabel: string) {
@@ -346,7 +392,7 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
     note: `Updated quantity for ${item.itemName}`,
   });
 
-  return {
+  const result = {
     id: String(item._id ?? itemIndex),
     itemName: item.itemName,
     quantityLabel: item.quantityLabel,
@@ -354,6 +400,9 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
     lineTotal: item.lineTotal ?? 0,
     status: item.status ?? "draft",
   };
+
+  await syncBackupToFile(publicId, userId);
+  return result;
 }
 
 export async function removeOrderItem(publicId: string, userId: string, itemIndex: number) {
@@ -395,6 +444,7 @@ export async function removeOrderItem(publicId: string, userId: string, itemInde
     note: `Removed ${removedItem.itemName}`,
   });
 
+  await syncBackupToFile(publicId, userId);
   return true;
 }
 
@@ -436,6 +486,7 @@ export async function undoRemoveOrderItem(publicId: string, userId: string, audi
   // Delete the item_remove log to prevent multiple undos
   await AuditLog.findByIdAndDelete(auditLogId);
 
+  await syncBackupToFile(publicId, userId);
   return true;
 }
 
@@ -502,6 +553,9 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     year: "numeric",
   });
 
+  const parsedQuantity = parseInt(quantityLabel, 10);
+  const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
+
   const newOrder = new Order({
     publicId,
     authorId: userId,
@@ -511,7 +565,7 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     items: [
       {
         itemName,
-        quantity: 1,
+        quantity,
         quantityLabel,
         status: "draft",
       },
@@ -533,6 +587,7 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     note: `Added ${itemName}`,
   });
 
+  await syncBackupToFile(publicId, userId);
   return publicId;
 }
 export async function getAllUsersWithOrderCounts() {
@@ -688,6 +743,14 @@ export async function adminMergeProducts(sourceId: string, targetId: string) {
   // Deactivate source
   source.active = false;
   await source.save();
+
+  // Refresh backups for all affected orders
+  const affectedOrders = await Order.find({ "items.productId": target._id }).lean();
+  for (const order of affectedOrders) {
+    if (order.publicId && order.authorId) {
+      await syncBackupToFile(order.publicId, String(order.authorId));
+    }
+  }
 
   return true;
 }
