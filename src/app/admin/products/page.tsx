@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getCategories, getOverviewSessions, getMarketItems } from "@/lib/pantry-db";
-import { AppShell } from "@/components/app-shell";
+import { PantryLayout } from "@/components/pantry-layout";
 import { ProductManager } from "./ProductManager";
 import { connectMongo } from "@/lib/db/mongodb";
 import { Product as ProductModel } from "@/models";
@@ -29,14 +29,14 @@ export default async function AdminProductsPage() {
     id: String(p._id),
     name: p.name,
     price: p.price,
-    unit: p.unit,
     notes: p.notes,
     categoryId: p.categoryId ? String(p.categoryId._id) : null,
     categoryName: p.categoryId ? p.categoryId.name : "Uncategorized",
+    aliases: p.aliases ? p.aliases.map((a: any) => a.value).join(", ") : "",
   }));
 
   return (
-    <AppShell active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
       <div className="space-y-6">
         <div className="px-1 flex justify-between items-end">
           <div>
@@ -50,6 +50,6 @@ export default async function AdminProductsPage() {
           initialCategories={categories.map((c: any) => ({ id: String(c._id), name: c.name }))} 
         />
       </div>
-    </AppShell>
+    </PantryLayout>
   );
 }

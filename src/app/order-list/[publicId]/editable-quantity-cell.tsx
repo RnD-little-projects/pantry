@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 
 type EditableQuantityCellProps = {
   publicId: string;
@@ -12,9 +13,9 @@ type EditableQuantityCellProps = {
 
 export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCreator }: EditableQuantityCellProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [value, setValue] = useState(quantityLabel);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [message, setMessage] = useState<string>("");
 
   const handleBlur = async () => {
     const cleaned = value.trim();
@@ -24,12 +25,11 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
 
     if (cleaned.length < 1) {
       setStatus("error");
-      setMessage("Quantity cannot be empty");
+      toast("Quantity cannot be empty", "error");
       return;
     }
 
     setStatus("saving");
-    setMessage("");
 
     try {
       const response = await fetch("/api/order-list/update-item", {
@@ -46,11 +46,10 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
       }
 
       setStatus("idle");
-      setMessage("");
       router.refresh();
     } catch (error) {
       setStatus("error");
-      setMessage((error as Error).message || "Unable to update quantity.");
+      toast((error as Error).message || "Unable to update quantity.", "error");
     }
   };
 
@@ -63,18 +62,16 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
           onChange={(event) => {
             setValue(event.target.value);
             setStatus("idle");
-            setMessage("");
           }}
           onBlur={handleBlur}
           disabled={!isCreator}
           placeholder="0"
-          className={`w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
+          className={`w-full border-0 bg-transparent px-2 py-3 text-center text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
         />
         {status === "error" && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">!</div>
         )}
       </div>
-      {status === "error" && <div className="mt-1 text-xs text-destructive">{message}</div>}
     </td>
   );
 }

@@ -2,19 +2,26 @@
 
 import { useEffect, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
+import type { MarketItem } from "@/lib/pantry-types";
+import { cn } from "@/lib/utils";
 
 type OrderItemComposerProps = {
   publicId: string;
+  marketItems?: ReadonlyArray<MarketItem>;
 };
 
 const AUTOSAVE_DELAY = 10000;
 
-export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
+export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemComposerProps) {
   const router = useRouter();
   const [itemName, setItemName] = useState("");
   const [quantityLabel, setQuantityLabel] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string>("");
+  const [suggestions, setSuggestions] = useState<MarketItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [autocorrectInfo, setAutocorrectInfo] = useState<{ original: string; matched: string } | null>(null);
+
   const timerRef = useRef<number | undefined>(undefined);
   const inFlightPayloadRef = useRef<string>("");
   const lastSavedPayloadRef = useRef<string>("");
@@ -29,6 +36,43 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
       }
     };
   }, []);
+
+  // Search for matches as user types
+  useEffect(() => {
+    const query = itemName.trim().toLowerCase();
+    if (query.length < 2) {
+      if (suggestions.length > 0) setSuggestions([]);
+      if (autocorrectInfo) setAutocorrectInfo(null);
+      return;
+    }
+
+    const filtered = marketItems.filter(item => {
+      const nameMatch = item.name.toLowerCase().includes(query);
+      const aliasMatch = item.aliases?.some(a => a.toLowerCase().includes(query));
+      return nameMatch || aliasMatch;
+    }).slice(0, 5);
+
+    // Only update if the filtered results are actually different
+    const currentIds = suggestions.map(s => s.id).join(",");
+    const newIds = filtered.map(s => s.id).join(",");
+    if (currentIds !== newIds) {
+      setSuggestions(filtered);
+    }
+
+    // Check for exact alias match to show autocorrect warning
+    const exactMatch = marketItems.find(item => {
+      if (item.name.toLowerCase() === query) return false; // Already correct
+      return item.aliases?.some(a => a.toLowerCase() === query);
+    });
+
+    if (exactMatch) {
+      if (autocorrectInfo?.original !== exactMatch.name) {
+        setAutocorrectInfo({ original: exactMatch.name, matched: query });
+      }
+    } else if (autocorrectInfo) {
+      setAutocorrectInfo(null);
+    }
+  }, [itemName, marketItems, suggestions, autocorrectInfo]);
 
   const buildPayload = (name: string, quantity: string) => `${name.trim()}|${quantity.trim()}`;
 
@@ -117,6 +161,7 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
       dirtySinceSaveRef.current = false;
       setItemName("");
       setQuantityLabel("");
+      setAutocorrectInfo(null);
       setStatus("saved");
       setMessage("Saved");
       router.refresh();
@@ -135,6 +180,9 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
     setStatus("idle");
     setMessage("");
     scheduleAutosave();
+    if (setter === setItemName) {
+      setShowSuggestions(true);
+    }
   };
 
   const handleFocusOutside = () => {
@@ -144,21 +192,54 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
         return;
       }
 
+      setShowSuggestions(false);
       handleAutosave();
-    }, 20);
+    }, 200);
+  };
+
+  const selectSuggestion = (item: MarketItem) => {
+    setItemName(item.name);
+    setShowSuggestions(false);
+    setAutocorrectInfo(null);
+    quantityLabelRef.current?.focus();
   };
 
   return (
     <tr className="bg-muted/40">
-      <td className="p-0">
+      <td className="p-0 relative">
         <input
           ref={itemNameRef}
           value={itemName}
           onChange={handleChange(setItemName)}
           onBlur={handleFocusOutside}
+          onFocus={() => setShowSuggestions(true)}
           placeholder="Add item name"
           className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
         />
+        
+        {/* Autocomplete Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg backdrop-blur-xl">
+            {suggestions.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="flex w-full flex-col items-start px-4 py-2 text-left hover:bg-muted/80 transition-colors"
+                onMouseDown={() => selectSuggestion(item)}
+              >
+                <span className="text-sm font-medium text-foreground">{item.name}</span>
+                <span className="text-[10px] text-muted-foreground">{item.price} • {item.note}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Autocorrect Warning */}
+        {autocorrectInfo && (
+          <div className="absolute left-4 top-[calc(100%+4px)] z-[101] flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-medium text-primary border border-primary/20 backdrop-blur-md">
+            <span>✨ Will autocorrect to: <strong>{autocorrectInfo.original}</strong></span>
+          </div>
+        )}
       </td>
       <td className="p-0">
         <input
@@ -168,13 +249,14 @@ export function OrderItemComposer({ publicId }: OrderItemComposerProps) {
           onChange={handleChange(setQuantityLabel)}
           onBlur={handleFocusOutside}
           placeholder="0"
-          className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
+          className="w-full border-0 bg-transparent px-2 py-3 text-center text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner"
         />
       </td>
       <td className="text-muted-foreground">&nbsp;</td>
       <td className="text-right text-xs uppercase tracking-[0.22em] text-muted-foreground pr-4">
-        {status === "saved" ? "Saved" : status === "saving" ? "Saving..." : status === "error" ? "Error" : "Idle"}
+        {status === "saved" ? "Saved" : status === "saving" ? "Saving..." : status === "error" ? "Error" : ""}
       </td>
+      <td>&nbsp;</td>
     </tr>
   );
 }

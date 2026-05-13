@@ -2,16 +2,16 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { saveProductAction, deleteProductAction, saveCategoryAction } from "./actions";
+import { saveProductAction, deleteProductAction, saveCategoryAction, mergeProductsAction } from "./actions";
 
 type Product = {
   id: string;
   name: string;
   price: number | null;
-  unit: string;
   notes: string;
+  aliases: string; // Comma-separated string for UI
   categoryId: string | null;
   categoryName: string;
 };
@@ -20,6 +20,8 @@ type Category = {
   id: string;
   name: string;
 };
+
+import { Plus, Merge, Trash2, Settings2 } from "lucide-react";
 
 export function ProductManager({ 
   initialProducts, 
@@ -31,6 +33,8 @@ export function ProductManager({
   const [products, setProducts] = useState(initialProducts);
   const [categories, setCategories] = useState(initialCategories);
   const [editingProduct, setEditingProduct] = useState<Partial<Product> | null>(null);
+  const [mergingProduct, setMergingProduct] = useState<Product | null>(null);
+  const [mergeTargetId, setMergeTargetId] = useState("");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
@@ -42,7 +46,6 @@ export function ProductManager({
     try {
       const result = await saveProductAction(editingProduct);
       if (result.success) {
-        // Refresh products list (simplified)
         window.location.reload();
       }
     } catch (error) {
@@ -75,6 +78,21 @@ export function ProductManager({
     }
   };
 
+  const handleMergeProducts = async () => {
+    if (!mergingProduct || !mergeTargetId) return;
+    setIsSaving(true);
+    try {
+      const result = await mergeProductsAction(mergingProduct.id, mergeTargetId);
+      if (result.success) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Failed to merge products:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const categoriesWithProducts = categories.map(cat => ({
     ...cat,
     products: products.filter(p => p.categoryId === cat.id)
@@ -85,88 +103,101 @@ export function ProductManager({
   return (
     <div className="space-y-8">
       {/* Category Management */}
-      <Card className="border-border/60 bg-background/50 backdrop-blur-sm">
+      <Card className="border-border/40 bg-card/20 backdrop-blur-md shadow-sm">
         <CardContent className="pt-6">
           <div className="flex gap-4">
             <input 
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="New Category Name"
-              className="flex-1 bg-transparent border-b border-border/60 text-sm focus:outline-none focus:border-primary px-2"
+              className="flex-1 bg-transparent border-b border-border/40 text-sm focus:outline-none focus:border-primary px-2 transition-colors"
             />
-            <Button onClick={handleSaveCategory} size="sm">Add Category</Button>
+            <Button onClick={handleSaveCategory} size="sm" className="rounded-xl px-6">Add Category</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Product List Organized by Category */}
-      <div className="space-y-6">
+      {/* Product List Organized by Category - Grid Layout */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {[...categoriesWithProducts, { id: null, name: "Uncategorized", products: uncategorizedProducts }].map((group) => (
-          <div key={group.id || "uncategorized"} className="space-y-3">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground px-1">
-              {group.name}
-            </h3>
-            
-            <Card className="overflow-hidden border-border/60 bg-background/50 backdrop-blur-sm">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product Name</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {group.products.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8 text-xs text-muted-foreground">
-                        No products in this category.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    group.products.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium">{product.name}</TableCell>
-                        <TableCell>₱{product.price ?? "—"}</TableCell>
-                        <TableCell className="text-muted-foreground">{product.unit || "—"}</TableCell>
-                        <TableCell className="text-right space-x-2">
+          <Card 
+            key={group.id || "uncategorized"} 
+            className="flex flex-col h-[480px] overflow-hidden border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all hover:shadow-lg hover:border-border/60"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border/20 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/80">
+                  {group.name}
+                </h3>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/50 border border-border/40 text-muted-foreground/60">
+                  {group.products.length}
+                </span>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={() => setEditingProduct({ categoryId: group.id || undefined })}
+                title={`Add product to ${group.name}`}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Product List */}
+            <div className="flex-1 overflow-y-auto no-scrollbar p-3">
+              {group.products.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full opacity-20 grayscale">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em]">No items</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {group.products.map((product) => (
+                    <div key={product.id} className="group relative">
+                      {/* Price Bubble (Visible after 1s hover) */}
+                      <div className="absolute left-1/2 -top-11 -translate-x-1/2 pointer-events-none opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 group-hover:delay-[1000ms] transition-all duration-300 ease-out z-50">
+                        <div className="relative bg-foreground text-background text-[10px] font-bold px-3 py-1.5 rounded-full shadow-2xl border border-foreground/10">
+                          ₱{product.price ?? "???"}
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between rounded-2xl px-3.5 py-2.5 transition-all hover:bg-primary/5 active:bg-primary/10 cursor-pointer">
+                        <button 
+                          onClick={() => setEditingProduct(product)}
+                          className="flex-1 text-left text-xs font-semibold text-foreground/70 hover:text-primary transition-colors truncate pr-3"
+                        >
+                          {product.name}
+                        </button>
+                        
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button 
                             variant="ghost" 
-                            size="sm" 
-                            onClick={() => setEditingProduct(product)}
-                            className="h-8 w-8 p-0"
+                            size="icon" 
+                            onClick={() => setMergingProduct(product)}
+                            className="h-7 w-7 rounded-lg text-amber-500/70 hover:bg-amber-500/10 hover:text-amber-500"
+                            title="Merge"
                           >
-                            ✎
+                            <Merge className="h-3.5 w-3.5" />
                           </Button>
                           <Button 
                             variant="ghost" 
-                            size="sm" 
+                            size="icon" 
                             onClick={() => handleDeleteProduct(product.id)}
-                            className="h-8 w-8 p-0 text-destructive"
+                            className="h-7 w-7 rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+                            title="Delete"
                           >
-                            ×
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                  {/* Add Product Row */}
-                  <TableRow className="bg-primary/5">
-                    <TableCell colSpan={4} className="p-0">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start h-10 px-4 text-xs text-primary hover:bg-primary/10 rounded-none"
-                        onClick={() => setEditingProduct({ categoryId: group.id || undefined })}
-                      >
-                        + Add product to {group.name}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </Card>
-          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Card>
         ))}
       </div>
 
@@ -186,26 +217,25 @@ export function ProductManager({
                     className="w-full bg-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price (₱)</label>
-                    <input 
-                      type="number"
-                      step="0.01"
-                      value={editingProduct.price ?? ""}
-                      onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value ? parseFloat(e.target.value) : null})}
-                      className="w-full bg-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Unit</label>
-                    <input 
-                      placeholder="pc, kg, etc."
-                      value={editingProduct.unit || ""}
-                      onChange={(e) => setEditingProduct({...editingProduct, unit: e.target.value})}
-                      className="w-full bg-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Price (₱)</label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    value={editingProduct.price ?? ""}
+                    onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value ? parseFloat(e.target.value) : null})}
+                    className="w-full bg-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Aliases</label>
+                  <input 
+                    placeholder="e.g. coke, coca cola (comma separated)"
+                    value={editingProduct.aliases || ""}
+                    onChange={(e) => setEditingProduct({...editingProduct, aliases: e.target.value})}
+                    className="w-full bg-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Used for matching similar items during add.</p>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Category</label>
@@ -227,6 +257,53 @@ export function ProductManager({
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Merge Product Modal */}
+      {mergingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
+          <Card className="w-full max-w-md border-border/70 bg-card shadow-2xl">
+            <CardContent className="pt-6 space-y-4">
+              <h3 className="text-lg font-semibold text-amber-500 flex items-center gap-2">
+                Merge "{mergingProduct.name}"
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                This will move all aliases and order history from <strong>{mergingProduct.name}</strong> into another product, then deactivate this one.
+              </p>
+              
+              <div className="space-y-4 pt-2">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Merge into...</label>
+                  <select 
+                    value={mergeTargetId}
+                    onChange={(e) => setMergeTargetId(e.target.value)}
+                    className="w-full bg-background border border-border/60 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    <option value="">Select target product</option>
+                    {products
+                      .filter(p => p.id !== mergingProduct.id)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))
+                    }
+                  </select>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <Button variant="ghost" type="button" onClick={() => { setMergingProduct(null); setMergeTargetId(""); }}>Cancel</Button>
+                  <Button 
+                    className="bg-amber-600 hover:bg-amber-700 text-white" 
+                    onClick={handleMergeProducts} 
+                    disabled={isSaving || !mergeTargetId}
+                  >
+                    {isSaving ? "Merging..." : "Confirm Merge"}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

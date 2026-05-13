@@ -12,7 +12,7 @@ const auditLogSchema = new Schema(
     targetId: { type: String, required: true, index: true },
     action: {
       type: String,
-      enum: ["create", "update", "delete", "finalize", "pay", "share", "price_adjust", "alias_add", "item_add", "quantity_update"],
+      enum: ["create", "update", "delete", "finalize", "pay", "share", "price_adjust", "alias_add", "item_add", "quantity_update", "item_remove", "item_undo_remove", "order_archive"],
       required: true,
       index: true,
     },
@@ -26,5 +26,9 @@ const auditLogSchema = new Schema(
 auditLogSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
 
 export type AuditLogDocument = InferSchemaType<typeof auditLogSchema>;
+
+if (process.env.NODE_ENV === "development" && models.AuditLog) {
+  delete models.AuditLog;
+}
 
 export const AuditLog = models.AuditLog || model("AuditLog", auditLogSchema);

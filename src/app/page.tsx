@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getLatestOrderPublicId, getOverviewSessions, getMarketItems } from "@/lib/pantry-db";
-import { AppShell } from "@/components/app-shell";
+import { PantryLayout } from "@/components/pantry-layout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { startOrderAction } from "./new-order-action";
@@ -35,7 +35,7 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
   ]);
 
   return (
-    <AppShell active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
       <div className="space-y-6">
         <div className="px-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Start a fresh order</h1>
@@ -91,6 +91,6 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
           </form>
         </div>
       </div>
-    </AppShell>
+    </PantryLayout>
   );
 }

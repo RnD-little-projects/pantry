@@ -6,6 +6,7 @@ const orderItemSchema = new Schema(
     itemName: { type: String, trim: true, default: null },
     normalizedItemName: { type: String, trim: true, lowercase: true, default: null, index: true },
     quantity: { type: Number, required: true, min: 1 },
+    quantityLabel: { type: String, trim: true, default: "" },
     unit: { type: String, trim: true, default: "" },
     unitPrice: { type: Number, default: null, min: 0 },
     lineTotal: { type: Number, default: 0, min: 0 },
@@ -51,6 +52,8 @@ const orderSchema = new Schema(
     isPublic: { type: Boolean, default: true, index: true },
     finalizedAt: { type: Date, default: null },
     paidAt: { type: Date, default: null },
+    archivedAt: { type: Date, default: null },
+    receiptUrl: { type: String, default: null },
   },
   { timestamps: true },
 );
@@ -58,5 +61,9 @@ const orderSchema = new Schema(
 export type OrderDocument = InferSchemaType<typeof orderSchema> & {
   authorId: Types.ObjectId;
 };
+
+if (process.env.NODE_ENV === "development" && models.Order) {
+  delete models.Order;
+}
 
 export const Order = models.Order || model("Order", orderSchema);

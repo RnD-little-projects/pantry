@@ -2,8 +2,8 @@ import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "../../lib/utils";
 
-type ButtonVariant = "default" | "secondary" | "outline" | "ghost";
-type ButtonSize = "default" | "sm" | "lg";
+type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "destructive";
+type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
@@ -11,12 +11,14 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary: "border-border/70 bg-secondary text-secondary-foreground hover:bg-secondary/80",
   outline: "border-border/80 bg-transparent text-foreground hover:bg-white/5",
   ghost: "border-transparent bg-transparent text-foreground hover:bg-white/5",
+  destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
   default: "h-11 px-4 py-2.5",
   sm: "h-9 px-3 text-xs",
   lg: "h-12 px-6 text-sm",
+  icon: "h-9 w-9 p-0",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

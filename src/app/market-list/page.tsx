@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { AppShell } from "../../components/app-shell";
+import { PantryLayout } from "../../components/pantry-layout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
@@ -17,7 +17,7 @@ export default async function MarketListPage() {
   const [marketItems, sessions] = await Promise.all([getMarketItems(), getOverviewSessions()]);
 
   return (
-    <AppShell active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as any).role}>
+    <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as any).role}>
       <Card>
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -47,7 +47,7 @@ export default async function MarketListPage() {
                   </TableCell>
                   <TableCell className="font-mono text-muted-foreground">{item.price}</TableCell>
                   <TableCell>
-                    <Badge variant={item.status === "Fresh" ? "default" : "secondary"}>{item.status}</Badge>
+                    <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{item.note}</TableCell>
                   <TableCell className="text-right">
@@ -61,6 +61,6 @@ export default async function MarketListPage() {
           </Table>
         </CardContent>
       </Card>
-    </AppShell>
+    </PantryLayout>
   );
 }

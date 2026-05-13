@@ -7,14 +7,16 @@ export type WorkspaceSession = {
   updated: string;
   active: boolean;
   isPublic?: boolean;
+  status?: string;
 };
 
 export type MarketItem = {
   id?: string;
   name: string;
   price: string;
-  status: "Fresh" | "Draft" | "Archived";
+  status: "Active" | "Draft" | "Archived";
   note: string;
+  aliases?: string[];
 };
 
 export type SessionLineItem = {
@@ -32,6 +34,7 @@ export type OrderHistoryEntry = {
   item: string;
   quantity: string;
   action: string;
+  rawAction?: string;
 };
 
 export type SharedOrderView = {
@@ -39,9 +42,11 @@ export type SharedOrderView = {
   title: string;
   createdAtLabel: string;
   updatedAtLabel: string;
+  archivedAtLabel?: string | null;
   items: SessionLineItem[];
   subtotal: number;
   total: number;
+  receiptUrl?: string | null;
   isPublic: boolean;
   status: "draft" | "finalized" | "paid" | "unpaid" | "archived";
   isAuthor?: boolean;

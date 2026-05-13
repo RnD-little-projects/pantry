@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { getAllUsersWithOrderCounts, getOverviewSessions, getMarketItems } from "@/lib/pantry-db";
-import { AppShell } from "@/components/app-shell";
+import { PantryLayout } from "@/components/pantry-layout";
 import { UserOrderList } from "./UserOrderList";
 
 export default async function AdminOrdersPage() {
@@ -22,7 +22,7 @@ export default async function AdminOrdersPage() {
   ]);
 
   return (
-    <AppShell active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as any).role}>
       <div className="space-y-6">
         <div className="px-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Admin: User Orders</h1>
@@ -33,6 +33,6 @@ export default async function AdminOrdersPage() {
           <UserOrderList users={users} />
         </div>
       </div>
-    </AppShell>
+    </PantryLayout>
   );
 }

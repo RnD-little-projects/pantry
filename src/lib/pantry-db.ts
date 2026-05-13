@@ -115,6 +115,7 @@ export async function getOverviewSessions(): Promise<WorkspaceSession[]> {
     updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
     active: order.status === "draft" || index === 0,
     isPublic: order.isPublic !== false,
+    status: order.status || "draft",
   }));
 }
 
@@ -124,16 +125,17 @@ export async function getMarketItems(): Promise<MarketItem[]> {
     return [];
   }
 
-  const products = await Product.find({}, { name: 1, price: 1, active: 1, notes: 1 })
-    .sort({ active: -1, updatedAt: -1 })
+  const products = await Product.find({ active: true }, { name: 1, price: 1, active: 1, notes: 1, aliases: 1 })
+    .sort({ updatedAt: -1 })
     .lean();
 
-  return products.map((product: LeanProduct, index: number) => ({
+  return products.map((product: any, index: number) => ({
     id: String(product._id ?? index),
     name: product.name,
     price: formatPeso(product.price ?? null),
-    status: product.active ? (product.price === null ? "Draft" : "Fresh") : "Archived",
-    note: product.notes || (product.active ? "Pending final price" : "Archived item"),
+    status: product.active ? (product.price === null ? "Draft" : "Active") : "Archived",
+    note: product.notes || (product.active ? "" : "Archived"),
+    aliases: Array.isArray(product.aliases) ? product.aliases.map((a: any) => a.value) : [],
   }));
 }
 
@@ -143,7 +145,7 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     throw new Error("DATABASE_NOT_READY");
   }
 
-  const order = (await Order.findOne({ publicId }).lean()) as LeanOrder | null;
+  const order = (await Order.findOne({ publicId }).populate("items.productId").lean()) as any;
   if (!order) {
     throw new Error("ORDER_NOT_FOUND");
   }
@@ -154,30 +156,40 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
   }
 
   const items = Array.isArray(order.items)
-    ? order.items.map((item: LeanOrderItem, index: number) => {
+    ? order.items.map((item: any, index: number) => {
         const quantityLabel = item.quantityLabel ?? `${item.quantity ?? 0}${item.unit ? ` ${item.unit}` : ""}`.trim();
+        
+        // Use the latest product price if available, fallback to stored unitPrice
+        const productPrice = item.productId && typeof item.productId.price === "number" ? item.productId.price : null;
+        const unitPrice = productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : null);
+        
+        const quantity = typeof item.quantity === "number" ? item.quantity : 1;
+        const lineTotal = unitPrice !== null ? unitPrice * quantity : 0;
 
         return {
           id: String(item._id ?? index),
           itemName: item.itemName || "Unnamed item",
           quantityLabel,
-          unitPrice: typeof item.unitPrice === "number" ? item.unitPrice : null,
-          lineTotal: typeof item.lineTotal === "number" ? item.lineTotal : 0,
+          unitPrice,
+          lineTotal,
           status: item.status ?? "draft",
         };
       })
     : [];
 
-  const subtotal = typeof order.subtotal === "number" ? order.subtotal : items.reduce((sum: number, item: { lineTotal: number }) => sum + item.lineTotal, 0);
+  const subtotal = items.reduce((sum: number, item: any) => sum + item.lineTotal, 0);
+  const total = typeof order.total === "number" && order.status !== "draft" ? order.total : subtotal;
 
   return {
     publicId: order.publicId,
     title: order.title || `Order ${order.publicId}`,
     createdAtLabel: formatRelativeDate(order.createdAt),
     updatedAtLabel: formatRelativeDate(order.updatedAt),
+    archivedAtLabel: order.archivedAt ? formatRelativeDate(order.archivedAt) : null,
     items,
     subtotal,
-    total: typeof order.total === "number" ? order.total : subtotal,
+    total,
+    receiptUrl: order.receiptUrl || null,
     isPublic: order.isPublic !== false,
     status: order.status ?? "draft",
     isAuthor,
@@ -221,24 +233,40 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
 
   // Case-insensitive product matching
   const normalizedItemName = cleanItemName.toLowerCase();
-  const matchedProduct = await Product.findOne({
+  let matchedProduct = await Product.findOne({
     $or: [
       { normalizedName: normalizedItemName },
       { "aliases.value": normalizedItemName }
     ],
     active: true
-  }).lean();
+  });
+
+  if (!matchedProduct) {
+    // Check if it exists but is deactivated
+    const existing = await Product.findOne({ normalizedName: normalizedItemName });
+    if (existing) {
+      existing.active = true;
+      await existing.save();
+      matchedProduct = existing;
+    } else {
+      matchedProduct = await Product.create({
+        name: cleanItemName,
+        normalizedName: normalizedItemName,
+        active: true
+      });
+    }
+  }
 
   const item = {
-    productId: matchedProduct ? matchedProduct._id : null,
-    itemName: matchedProduct ? matchedProduct.name : cleanItemName,
+    productId: matchedProduct._id,
+    itemName: matchedProduct.name,
     normalizedItemName,
     quantity,
     quantityLabel: cleanQuantityLabel,
-    unit: matchedProduct ? (matchedProduct.unit || "") : "",
-    unitPrice: matchedProduct ? matchedProduct.price : null,
-    lineTotal: matchedProduct && matchedProduct.price ? matchedProduct.price * quantity : 0,
-    status: matchedProduct && matchedProduct.price ? "priced" as const : "draft" as const,
+    unit: matchedProduct.unit || "",
+    unitPrice: matchedProduct.price,
+    lineTotal: typeof matchedProduct.price === "number" ? matchedProduct.price * quantity : 0,
+    status: typeof matchedProduct.price === "number" ? "priced" as const : "draft" as const,
   };
 
   order.items.push(item);
@@ -262,9 +290,9 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     id: String(inserted._id ?? order.items.length - 1),
     itemName: inserted.itemName,
     quantityLabel: inserted.quantityLabel,
-    unitPrice: null,
-    lineTotal: 0,
-    status: "draft" as const,
+    unitPrice: inserted.unitPrice ?? null,
+    lineTotal: inserted.lineTotal ?? 0,
+    status: inserted.status ?? "draft",
   };
 }
 
@@ -336,6 +364,89 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
   };
 }
 
+export async function removeOrderItem(publicId: string, userId: string, itemIndex: number) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("DATABASE_NOT_READY");
+
+  const order = await Order.findOne({ publicId });
+  if (!order) throw new Error("ORDER_NOT_FOUND");
+
+  if (!order.authorId || String(order.authorId) !== String(userId)) {
+    const error = new Error("Forbidden");
+    (error as any).code = "FORBIDDEN";
+    throw error;
+  }
+
+  if (!Array.isArray(order.items) || itemIndex < 0 || itemIndex >= order.items.length) {
+    const error = new Error("ITEM_NOT_FOUND");
+    (error as any).code = "ITEM_NOT_FOUND";
+    throw error;
+  }
+
+  const removedItem = order.items[itemIndex];
+  order.items.splice(itemIndex, 1);
+  order.markModified("items");
+  await order.save();
+
+  await AuditLog.create({
+    actorId: userId,
+    targetType: "order",
+    targetId: publicId,
+    action: "item_remove",
+    before: {
+      itemName: removedItem.itemName,
+      quantityLabel: removedItem.quantityLabel,
+      // Store full item data to allow undo
+      fullItem: removedItem, 
+      index: itemIndex
+    },
+    note: `Removed ${removedItem.itemName}`,
+  });
+
+  return true;
+}
+
+export async function undoRemoveOrderItem(publicId: string, userId: string, auditLogId: string) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("DATABASE_NOT_READY");
+
+  const auditLog = await AuditLog.findById(auditLogId);
+  if (!auditLog || auditLog.action !== "item_remove" || String(auditLog.targetId) !== publicId) {
+    throw new Error("INVALID_AUDIT_LOG");
+  }
+
+  const order = await Order.findOne({ publicId });
+  if (!order) throw new Error("ORDER_NOT_FOUND");
+
+  if (!order.authorId || String(order.authorId) !== String(userId)) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const { fullItem, index } = auditLog.before as any;
+  
+  // Re-insert the item at the original index
+  order.items.splice(index, 0, fullItem);
+  order.markModified("items");
+  await order.save();
+
+  await AuditLog.create({
+    actorId: userId,
+    targetType: "order",
+    targetId: publicId,
+    action: "item_undo_remove",
+    after: {
+      itemName: fullItem.itemName,
+      quantityLabel: fullItem.quantityLabel,
+    },
+    note: `Undid removal of ${fullItem.itemName}`,
+  });
+
+  // Delete the item_remove log to prevent multiple undos
+  await AuditLog.findByIdAndDelete(auditLogId);
+
+  return true;
+}
+
 export async function getOrderHistory(publicId: string): Promise<OrderHistoryEntry[]> {
   const ready = await canUseMongo();
   if (!ready) {
@@ -355,12 +466,14 @@ export async function getOrderHistory(publicId: string): Promise<OrderHistoryEnt
 
   return auditLogs.map((entry: any) => {
     const after = entry.after ?? {};
+    const before = entry.before ?? {};
     return {
       id: String(entry._id),
       date: new Date(entry.createdAt ?? Date.now()).toISOString().slice(0, 10),
-      item: after.itemName || after.productName || entry.note || "Order update",
-      quantity: String(after.quantityLabel || after.quantity || "-"),
+      item: after.itemName || before.itemName || after.productName || entry.note || "Order update",
+      quantity: String(after.quantityLabel || before.quantityLabel || after.quantity || "-"),
       action: entry.action.replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase()),
+      rawAction: entry.action,
     };
   });
 }
@@ -468,6 +581,7 @@ export async function getOrdersByUser(userId: string): Promise<WorkspaceSession[
     updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
     active: false,
     isPublic: order.isPublic !== false,
+    status: order.status || "draft",
   }));
 }
 
@@ -501,11 +615,89 @@ export async function adminUpdateProduct(productId: string | null, data: any) {
     active: true
   };
 
+  // Convert comma-separated aliases to the schema format if it's a string
+  if (typeof data.aliases === "string") {
+    updateData.aliases = data.aliases
+      .split(",")
+      .map((s: string) => s.trim().toLowerCase())
+      .filter((s: string) => s.length > 0)
+      .map((value: string) => ({ value, source: "manual" }));
+  }
+
   if (productId) {
-    return Product.findByIdAndUpdate(productId, updateData, { new: true });
+    const product = await Product.findByIdAndUpdate(productId, updateData, { new: true });
+    
+    // Sync price to draft orders if price was updated
+    if (data.price !== undefined) {
+      await Order.updateMany(
+        { "items.productId": productId, status: "draft" },
+        { 
+          $set: { 
+            "items.$[elem].unitPrice": data.price,
+            "items.$[elem].status": data.price !== null ? "priced" : "draft"
+          } 
+        },
+        { arrayFilters: [{ "elem.productId": productId }] }
+      );
+    }
+    
+    return product;
   } else {
     return Product.create(updateData);
   }
+}
+
+export async function adminMergeProducts(sourceId: string, targetId: string) {
+  const ready = await canUseMongo();
+  if (!ready) throw new Error("Database not ready");
+
+  const source = await Product.findById(sourceId);
+  const target = await Product.findById(targetId);
+
+  if (!source || !target) throw new Error("Product not found");
+  if (String(source._id) === String(target._id)) throw new Error("Cannot merge into itself");
+
+  // Collect all unique alias values
+  const aliasValues = new Set<string>();
+  
+  // Add source name as alias
+  aliasValues.add(source.normalizedName);
+  
+  // Add source's existing aliases
+  if (Array.isArray(source.aliases)) {
+    source.aliases.forEach((a: any) => aliasValues.add(a.value));
+  }
+  
+  // Add target's existing aliases
+  if (Array.isArray(target.aliases)) {
+    target.aliases.forEach((a: any) => aliasValues.add(a.value));
+  }
+
+  // Build new aliases array for target, excluding target's own name
+  const finalAliases = Array.from(aliasValues)
+    .filter(val => val !== target.normalizedName)
+    .map(value => ({ value, source: "merge" }));
+
+  target.aliases = finalAliases;
+  await target.save();
+
+  // Update all orders pointing to source to point to target
+  await Order.updateMany(
+    { "items.productId": source._id },
+    { 
+      $set: { 
+        "items.$[elem].productId": target._id,
+        "items.$[elem].itemName": target.name
+      } 
+    },
+    { arrayFilters: [{ "elem.productId": source._id }] }
+  );
+
+  // Deactivate source
+  source.active = false;
+  await source.save();
+
+  return true;
 }
 
 export async function adminDeleteProduct(productId: string) {
