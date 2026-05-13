@@ -1,8 +1,9 @@
-import Link from "next/link";
 
+import Link from "next/link";
 import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoginForm } from "./login-form";
 
 const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
@@ -28,24 +29,7 @@ export default function LoginPage() {
               <CardDescription>Sign in with your pantry account.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-6">
-              <form action={async (formData) => {
-                "use server";
-                await signIn("credentials", {
-                  username: String(formData.get("username") ?? ""),
-                  password: String(formData.get("password") ?? ""),
-                  redirectTo: "/",
-                });
-              }} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="username">Username</label>
-                  <input id="username" name="username" type="text" required className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium" htmlFor="password">Password</label>
-                  <input id="password" name="password" type="password" required className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary" />
-                </div>
-                <Button type="submit" className="w-full">Sign in</Button>
-              </form>
+              <LoginForm />
 
               <div className="space-y-3 pt-2">
                 {googleEnabled ? (

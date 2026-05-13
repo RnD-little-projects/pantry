@@ -1,8 +1,10 @@
+
 "use client";
 
 import Link from "next/link";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
+import { logoutAction } from "@/app/auth-actions";
 
 export type ThemeMode = "system" | "light" | "dark";
 
@@ -101,6 +103,9 @@ export function AccountMenu({
                   key={item}
                   type="button"
                   className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                  onClick={async () => {
+                    await logoutAction();
+                  }}
                 >
                   <span>{item}</span>
                   <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Open</span>
