@@ -4,7 +4,7 @@ import { connectMongo } from "@/lib/db/mongodb";
 import { Order } from "@/models";
 
 export async function POST(request: Request) {
-  const { publicId } = (await request.json()) as { publicId?: string };
+  const { publicId, isPublic } = (await request.json()) as { publicId?: string; isPublic?: boolean };
 
   if (!publicId) {
     return NextResponse.json({ message: "Missing publicId" }, { status: 400 });
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   await connectMongo();
   const order = await Order.findOneAndUpdate(
     { publicId },
-    { $set: { isPublic: true } },
+    { $set: { isPublic: !!isPublic } },
     { new: true },
   ).lean();
 

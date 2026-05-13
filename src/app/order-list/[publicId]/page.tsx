@@ -92,9 +92,8 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isCreator && !isArchived && <ArchiveOrderDialog publicId={publicId} orderTitle={order.title} />}
-            {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
             <Badge variant={isCreator ? "default" : "secondary"}>{accessLabel}</Badge>
-            <Badge variant={order.isPublic ? "default" : "outline"}>{order.isPublic ? "Public" : "Private"}</Badge>
+            {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
           </div>
         </div>
       </div>

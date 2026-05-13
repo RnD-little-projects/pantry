@@ -116,13 +116,10 @@ export function PantryLayout({
                 <span aria-hidden="true" className="text-lg w-9 shrink-0 flex justify-center">🛒</span>
                 <div className={cn(
                   "overflow-hidden transition-all duration-300",
-                  collapsed ? "w-0 opacity-0" : "w-[140px] opacity-100"
+                  collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
                 )}>
-                  <div className="w-[140px] flex items-center justify-between pl-2">
+                  <div className="w-[155px] flex items-center pl-2">
                     <span className="whitespace-nowrap">Market list</span>
-                    <Badge variant="outline" className="border-border/60 bg-black/10 text-[9px] tracking-[0.22em] whitespace-nowrap">
-                      Prices
-                    </Badge>
                   </div>
                 </div>
               </Button>
