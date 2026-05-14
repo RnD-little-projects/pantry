@@ -30,6 +30,7 @@ const authConfig = {
         const user = await User.findOne({
           $or: [{ username }, { email: username.toLowerCase() }],
           isActive: true,
+          isDeleted: { $ne: true },
         }).lean();
 
         if (!user?.passwordHash) {
@@ -47,6 +48,7 @@ const authConfig = {
           email: user.email ?? undefined,
           image: user.avatarUrl ?? undefined,
           role: user.role ?? "author",
+          forcePasswordChange: user.forcePasswordChange ?? false,
         };
       },
     }),
@@ -119,6 +121,7 @@ const authConfig = {
         token.userId = user.id ?? undefined;
         token.username = user.name ?? undefined;
         token.role = user.role ?? "author";
+        token.forcePasswordChange = user.forcePasswordChange ?? false;
       }
 
       if (account?.provider === "google") {
@@ -142,6 +145,10 @@ const authConfig = {
 
       if (session.user && token.role) {
         session.user.role = token.role;
+      }
+
+      if (session.user && typeof token.forcePasswordChange === "boolean") {
+        session.user.forcePasswordChange = token.forcePasswordChange;
       }
 
       return session;

@@ -33,8 +33,11 @@ export const viewport = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;

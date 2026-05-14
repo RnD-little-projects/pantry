@@ -9,12 +9,14 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       role?: string;
+      forcePasswordChange?: boolean;
     };
   }
 
   interface User {
     id?: string;
     role?: string;
+    forcePasswordChange?: boolean;
   }
 }
 
@@ -24,5 +26,6 @@ declare module "next-auth/jwt" {
     username?: string;
     role?: string;
     googleEnabled?: boolean;
+    forcePasswordChange?: boolean;
   }
 }

@@ -37,3 +37,7 @@ export function CardDescription({ className, children, ...props }: Readonly<HTML
 export function CardContent({ className, ...props }: Readonly<HTMLAttributes<HTMLDivElement>>) {
   return <div className={cn("p-6 pt-0", className)} {...props} />;
 }
+
+export function CardFooter({ className, ...props }: Readonly<HTMLAttributes<HTMLDivElement>>) {
+  return <div className={cn("flex items-center p-6 pt-0", className)} {...props} />;
+}

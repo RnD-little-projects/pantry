@@ -19,6 +19,8 @@ const userSchema = new Schema(
     providerAccountId: { type: String, trim: true, default: null },
     avatarUrl: { type: String, trim: true, default: null },
     isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
+    forcePasswordChange: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
