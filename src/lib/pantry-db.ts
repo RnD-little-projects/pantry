@@ -170,6 +170,32 @@ export async function getMarketItems(): Promise<MarketItem[]> {
   }));
 }
 
+export async function getMarketItemMetrics() {
+  const ready = await canUseMongo();
+  if (!ready) {
+    return { total: 0, pending: 0, valuated: 0 };
+  }
+
+  const products = await Product.find({ active: true }, { price: 1 }).lean();
+  
+  let valuated = 0;
+  let pending = 0;
+
+  for (const product of products) {
+    if (typeof product.price === "number" && product.price > 0) {
+      valuated++;
+    } else {
+      pending++;
+    }
+  }
+
+  return {
+    total: products.length,
+    pending,
+    valuated
+  };
+}
+
 async function getOrCreateProduct(itemName: string) {
   const cleanItemName = String(itemName ?? "").trim();
   const normalizedItemName = cleanItemName.toLowerCase();
@@ -615,7 +641,7 @@ export async function getAllUsersWithOrderCounts() {
       username: String(user.username ?? ""),
       email: (user.email as string | null) ?? null,
       avatarUrl: (user.avatarUrl as string | null) ?? null,
-      role: String(user.role ?? "author"),
+      role: String(user.role ?? "user"),
       orderCount
     };
   }));

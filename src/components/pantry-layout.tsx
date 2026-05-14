@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import type { MarketItem, WorkspaceSession } from "../lib/pantry-types";
 
@@ -43,6 +45,7 @@ export function PantryLayout({
   const [marketOpen, setMarketOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { theme, setTheme } = useTheme();
+  const pathname = usePathname();
 
   const themeMode = (theme as ThemeMode) || "system";
   const setThemeMode = (mode: ThemeMode) => setTheme(mode);
@@ -110,38 +113,84 @@ export function PantryLayout({
               }}
             />
 
-            {/* Scrollable Navigation Area */}
+            {/* Navigation Area */}
             <div className={cn("mt-5 flex-1 overflow-y-auto no-scrollbar pr-1 transition-all duration-300", collapsed && "pr-0")}>
-              <div className={cn(
-                "overflow-hidden transition-all duration-300",
-                collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
-              )}>
-                <div className="w-[188px] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">{sidebarTitle}</p>
-                    {active !== "market" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-2 text-[10px] uppercase tracking-widest text-primary hover:bg-primary/10"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          window.location.href = "/?new=true";
-                        }}
+              {(userRole === "admin" || userRole === "cashier") ? (
+                <div className={cn(
+                  "overflow-hidden transition-all duration-300",
+                  collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
+                )}>
+                  <div className="w-[188px] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">Navigation</p>
+                    </div>
+                    <div className="space-y-1">
+                      <Link
+                        href="/"
+                        className={cn(
+                          "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                          pathname === "/" 
+                            ? "text-foreground font-bold bg-muted/50" 
+                            : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                        )}
+                        onClick={() => setMobileMenuOpen(false)}
                       >
-                        + New
-                      </Button>
-                    )}
+                        <span className="truncate text-sm tracking-wide transition-all">Home</span>
+                      </Link>
+                      <Link
+                        href="/admin/orders"
+                        className={cn(
+                          "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                          pathname === "/admin/orders" 
+                            ? "text-foreground font-bold bg-muted/50" 
+                            : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                        )}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span className="truncate text-sm tracking-wide transition-all">User Orders</span>
+                      </Link>
+                      <Link
+                        href="/admin/products"
+                        className={cn(
+                          "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                          pathname === "/admin/products" 
+                            ? "text-foreground font-bold bg-muted/50" 
+                            : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                        )}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span className="truncate text-sm tracking-wide transition-all">Item Management</span>
+                      </Link>
+                      {userRole === "admin" && (
+                        <Link
+                          href="/admin/users"
+                          className={cn(
+                            "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                            pathname === "/admin/users" 
+                              ? "text-foreground font-bold bg-muted/50" 
+                              : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                          )}
+                          onClick={() => setMobileMenuOpen(false)}
+                        >
+                          <span className="truncate text-sm tracking-wide transition-all">User Management</span>
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm leading-6 text-muted-foreground">
-                    {active === "market" ? "Review catalog prices and item notes." : "Tap any order list to open it."}
-                  </p>
                 </div>
-              </div>
-
-              <div onClick={() => setMobileMenuOpen(false)}>
-                <SessionList collapsed={collapsed} sessions={sessions} />
-              </div>
+              ) : (
+                <div onClick={() => setMobileMenuOpen(false)}>
+                  <div className={cn(
+                    "overflow-hidden transition-all duration-300",
+                    collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
+                  )}>
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">{sidebarTitle}</p>
+                    </div>
+                  </div>
+                  <SessionList collapsed={collapsed} sessions={sessions} />
+                </div>
+              )}
             </div>
 
             {/* Sidebar Footer Actions */}

@@ -23,11 +23,11 @@ export default function ForcePasswordChangeForm() {
     try {
       const result = await changePassword(formData);
       if (result.success) {
-        toast("Password Updated successfully. Redirecting...", "success");
-        // Wait a bit for the toast to show and then refresh/redirect
+        toast("Password Updated successfully.", "success");
+        // Redirect to dashboard now that the token is updated
         setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
+          router.push("/");
+        }, 1000);
       }
     } catch (error: any) {
       toast(error.message, "error");
@@ -93,7 +93,7 @@ export default function ForcePasswordChangeForm() {
               className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-6"
               disabled={loading}
             >
-              {loading ? "Updating..." : "Update Password & Sign In"}
+              {loading ? "Updating..." : "Update Password & Continue"}
             </Button>
           </CardFooter>
         </form>

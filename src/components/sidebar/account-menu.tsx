@@ -5,6 +5,8 @@ import Link from "next/link";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { logoutAction } from "@/app/auth-actions";
+import { useState } from "react";
+import { ChangePasswordModal } from "../auth/ChangePasswordModal";
 
 export type ThemeMode = "system" | "light" | "dark";
 
@@ -25,6 +27,8 @@ export function AccountMenu({
   onThemeChange,
   userRole,
 }: AccountMenuProps) {
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+
   return (
     <div className="relative">
       <Button
@@ -76,7 +80,7 @@ export function AccountMenu({
             </div>
 
             <div className="space-y-1 border-t border-border/60 pt-3">
-              {userRole === "admin" && (
+              {(userRole === "admin" || userRole === "cashier") && (
                 <>
                   <Link
                     href="/admin/orders"
@@ -96,25 +100,33 @@ export function AccountMenu({
                   </Link>
                 </>
               )}
-              {[
-                "Logout",
-              ].map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
-                  onClick={async () => {
-                    await logoutAction();
-                  }}
-                >
-                  <span>{item}</span>
-                  <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Open</span>
-                </button>
-              ))}
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                onClick={() => {
+                  setPasswordModalOpen(true);
+                  onOpenChange(false);
+                }}
+              >
+                <span>Change Password</span>
+                <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Open</span>
+              </button>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                onClick={async () => {
+                  await logoutAction();
+                }}
+              >
+                <span>Logout</span>
+                <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Action</span>
+              </button>
             </div>
           </div>
         </>
       ) : null}
+
+      <ChangePasswordModal open={passwordModalOpen} onOpenChange={setPasswordModalOpen} />
     </div>
   );
 }

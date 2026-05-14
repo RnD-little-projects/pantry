@@ -83,3 +83,46 @@ export async function updateUserInfo(userId: string, data: { username: string; e
   await User.findByIdAndUpdate(userId, data);
   revalidatePath("/admin/users");
 }
+
+/**
+ * Creates a new user.
+ */
+export async function createUser(data: Record<string, unknown>) {
+  await ensureAdmin();
+  await connectMongo();
+
+  const { username, email, role, password, forcePasswordChange } = data as {
+    username: string;
+    email?: string;
+    role: string;
+    password?: string;
+    forcePasswordChange: boolean;
+  };
+
+  if (!username) throw new Error("Username is required.");
+  
+  const existingUser = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+  if (existingUser) throw new Error("Username already exists.");
+
+  if (email) {
+    const existingEmail = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (existingEmail) throw new Error("Email already exists.");
+  }
+
+  let passwordHash = undefined;
+  if (password) {
+    if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+    passwordHash = await bcrypt.hash(password, 10);
+  }
+
+  await User.create({
+    username,
+    email: email?.toLowerCase() || undefined,
+    role: role || "user",
+    passwordHash,
+    forcePasswordChange: !!forcePasswordChange,
+    isActive: true,
+  });
+
+  revalidatePath("/admin/users");
+}

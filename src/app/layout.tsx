@@ -33,9 +33,7 @@ export const viewport = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import ForcePasswordChangeHandler from "@/components/auth/ForcePasswordChangeHandler";
 
 export default async function RootLayout({
   children,
@@ -57,6 +55,7 @@ export default async function RootLayout({
           disableTransitionOnChange
           storageKey="pantry-theme"
         >
+          <ForcePasswordChangeHandler />
           <ToastProvider>{children}</ToastProvider>
         </ThemeProvider>
       </body>

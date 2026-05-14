@@ -7,33 +7,39 @@ export default auth(async (request) => {
   const { pathname } = request.nextUrl;
   const session = request.auth;
 
-  // 1. Allow public paths
-  if (publicPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
-    return NextResponse.next();
+  // Always set x-pathname for server components
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
+  // 1. Handle forced password change for logged-in users (High Priority)
+  if (session?.user?.forcePasswordChange) {
+    const isForceChangePage = pathname === "/auth/force-password-change";
+    if (!isForceChangePage && !pathname.startsWith("/api") && pathname !== "/login") {
+      const url = new URL("/auth/force-password-change", request.url);
+      return NextResponse.redirect(url);
+    }
   }
 
-  // 2. Check for session
+  // 2. Allow public paths
+  if (publicPaths.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      },
+    });
+  }
+
+  // 2. Check for session (for non-public paths)
   if (!session) {
     const url = new URL("/login", request.url);
     return NextResponse.redirect(url);
   }
 
-  // 3. Handle forced password change
-  const isForceChangePage = pathname === "/auth/force-password-change";
-  const needsForceChange = session.user?.forcePasswordChange;
-
-  if (needsForceChange && !isForceChangePage && !pathname.startsWith("/api")) {
-    const url = new URL("/auth/force-password-change", request.url);
-    return NextResponse.redirect(url);
-  }
-
-  // 4. Prevent accessing force change page if not needed
-  if (!needsForceChange && isForceChangePage) {
-    const url = new URL("/", request.url);
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 });
 
 export const config = {

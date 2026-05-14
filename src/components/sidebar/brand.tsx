@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 
@@ -15,9 +17,9 @@ export function ShellBrand({ collapsed, onToggle }: Readonly<BrandProps>) {
         "overflow-hidden transition-all duration-300 ease-in-out",
         collapsed ? "w-0 opacity-0" : "w-[140px] opacity-100"
       )}>
-        <div className="w-[140px]">
+        <Link href="/" className="w-[140px] block hover:opacity-80 transition-opacity">
           <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.42em] text-foreground/90">Pantry OS</p>
-        </div>
+        </Link>
       </div>
       <Button
         variant="ghost"

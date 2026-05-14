@@ -47,7 +47,7 @@ const authConfig = {
           name: user.username,
           email: user.email ?? undefined,
           image: user.avatarUrl ?? undefined,
-          role: user.role ?? "author",
+          role: user.role ?? "user",
           forcePasswordChange: user.forcePasswordChange ?? false,
         };
       },
@@ -78,7 +78,7 @@ const authConfig = {
           const userCount = await User.countDocuments();
           const isFirstUser = userCount === 0;
           const allowFirstAdmin = process.env.ALLOW_FIRST_LOGIN_ADMIN === "true";
-          const role = isFirstUser && allowFirstAdmin ? "admin" : "author";
+          const role = isFirstUser && allowFirstAdmin ? "admin" : "user";
 
           const newUser = await User.create({
             username: user.name || user.email?.split("@")[0] || "google_user",
@@ -116,11 +116,17 @@ const authConfig = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      if (trigger === "update" && session !== undefined) {
+        if (session.forcePasswordChange !== undefined) {
+          token.forcePasswordChange = session.forcePasswordChange;
+        }
+      }
+
       if (user) {
         token.userId = user.id ?? undefined;
         token.username = user.name ?? undefined;
-        token.role = user.role ?? "author";
+        token.role = user.role ?? "user";
         token.forcePasswordChange = user.forcePasswordChange ?? false;
       }
 
@@ -147,8 +153,29 @@ const authConfig = {
         session.user.role = token.role;
       }
 
-      if (session.user && typeof token.forcePasswordChange === "boolean") {
+      if (session.user && token.forcePasswordChange !== undefined) {
         session.user.forcePasswordChange = token.forcePasswordChange;
+      }
+
+      // DB Level check for forcePasswordChange
+      if (session.user?.id) {
+        try {
+          await connectMongo();
+          const dbUser = await User.findById(session.user.id).select("forcePasswordChange isActive isDeleted").lean();
+          
+          if (dbUser) {
+            session.user.forcePasswordChange = dbUser.forcePasswordChange ?? false;
+            
+            // Also handle deactivated/deleted users at session level
+            if (!dbUser.isActive || dbUser.isDeleted) {
+              // This will effectively sign them out or block them
+              return null as any; 
+            }
+          }
+        } catch (error) {
+          // If DB check fails (e.g. in Edge runtime middleware), we fallback to the JWT token value
+          console.error("Session DB check failed:", error);
+        }
       }
 
       return session;
@@ -158,4 +185,4 @@ const authConfig = {
   secret: process.env.AUTH_SECRET,
 } satisfies NextAuthConfig;
 
-export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth(authConfig);

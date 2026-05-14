@@ -104,7 +104,7 @@ export default async function RegisterPage({ searchParams }: Readonly<RegisterPa
                     const userCount = await User.countDocuments();
                     const isFirstUser = userCount === 0;
                     const allowFirstAdmin = process.env.ALLOW_FIRST_LOGIN_ADMIN === "true";
-                    const role = isFirstUser && allowFirstAdmin ? "admin" : "author";
+                    const role = isFirstUser && allowFirstAdmin ? "admin" : "user";
                     const passwordHash = await bcrypt.hash(password, 12);
 
                     await User.create({

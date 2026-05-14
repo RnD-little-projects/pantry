@@ -13,7 +13,8 @@ export default async function AdminProductsPage() {
     redirect("/login");
   }
 
-  if ((session.user as Record<string, unknown>).role !== "admin") {
+  const role = (session.user as Record<string, unknown>).role as string;
+  if (role !== "admin" && role !== "cashier") {
     redirect("/unauthorized");
   }
 

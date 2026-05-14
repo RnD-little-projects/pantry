@@ -30,7 +30,8 @@ import {
   resetUserPassword, 
   softDeleteUser, 
   updateUserStatus, 
-  updateUserInfo 
+  updateUserInfo,
+  createUser
 } from "./actions";
 import { useToast } from "@/components/ui/toast";
 import { 
@@ -55,6 +56,7 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
   const { toast } = useToast();
   
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
@@ -117,6 +119,28 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
     }
   };
 
+  const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      username: formData.get("username") as string,
+      email: formData.get("email") as string,
+      role: formData.get("role") as string,
+      password: formData.get("password") as string,
+      forcePasswordChange: formData.get("forcePasswordChange") === "on",
+    };
+
+    try {
+      await createUser(data);
+      toast("User Created successfully.", "success");
+      setIsCreating(false);
+      window.location.reload(); 
+    } catch (error: any) {
+      toast(error.message, "error");
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -134,6 +158,10 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <Button onClick={() => setIsCreating(true)} className="gap-2">
+            <UserPlus size={16} />
+            Create User
+          </Button>
         </div>
       </div>
 
@@ -292,7 +320,7 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
               defaultValue={editingUser?.role}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="author">Author</option>
+              <option value="user">User</option>
               <option value="cashier">Cashier</option>
               <option value="viewer">Viewer</option>
               <option value="admin">Admin</option>
@@ -318,6 +346,58 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
           </div>
         )}
       />
+      {/* Create User Dialog */}
+      <Dialog 
+        open={isCreating} 
+        onOpenChange={setIsCreating}
+        title="Create New User"
+        description="Add a new user to the system."
+      >
+        <form onSubmit={handleCreateUser} className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="new-username">Username</Label>
+            <Input id="new-username" name="username" required placeholder="john_doe" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-email">Email (Optional)</Label>
+            <Input id="new-email" name="email" type="email" placeholder="john@example.com" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-role">Role</Label>
+            <select 
+              id="new-role" 
+              name="role" 
+              defaultValue="user"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="user">User</option>
+              <option value="cashier">Cashier</option>
+              <option value="viewer">Viewer</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="new-password">Initial Password</Label>
+            <Input id="new-password" name="password" required type="password" placeholder="••••••••" />
+          </div>
+          <div className="flex items-center space-x-2 mt-4">
+            <input 
+              type="checkbox" 
+              id="forcePasswordChange" 
+              name="forcePasswordChange" 
+              defaultChecked 
+              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary bg-background"
+            />
+            <Label htmlFor="forcePasswordChange" className="text-sm font-normal cursor-pointer">
+              Force user to change password on first login
+            </Label>
+          </div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end mt-6">
+            <Button type="button" variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
+            <Button type="submit">Create User</Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 }
