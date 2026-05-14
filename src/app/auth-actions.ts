@@ -32,7 +32,7 @@ export async function changePassword(formData: FormData) {
   });
 
   const { unstable_update } = await import("@/auth");
-  await unstable_update({ forcePasswordChange: false });
+  await unstable_update({ user: { forcePasswordChange: false } });
 
   return { success: true };
 }
