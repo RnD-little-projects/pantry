@@ -240,8 +240,13 @@ export function PantryLayout({
 
         {/* Content Area Section */}
         <section className="flex min-w-0 flex-1">
-          <div className="flex min-h-[calc(100vh-65px)] lg:min-h-screen w-full flex-col px-4 py-4 sm:px-6 lg:px-8">
-            <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6">
+          <div className="flex min-h-[calc(100vh-65px)] lg:min-h-screen w-full flex-col px-4 py-4 sm:px-6 lg:px-8 text-left">
+            <div className={cn(
+              "flex w-full flex-1 flex-col gap-6 text-left",
+              pathname.startsWith("/order-list") || pathname.startsWith("/admin/orders")
+                ? "max-w-5xl mx-auto" 
+                : "max-w-full"
+            )}>
               {children}
             </div>
           </div>
