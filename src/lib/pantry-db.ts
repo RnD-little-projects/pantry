@@ -129,7 +129,7 @@ export async function getOverviewSessions(userId?: string): Promise<WorkspaceSes
   }
 
   const query = userId 
-    ? { $or: [{ isPublic: true }, { authorId: userId }] }
+    ? { authorId: userId }
     : { isPublic: true };
 
   const orders = await Order.find(query, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1, isPublic: 1 })

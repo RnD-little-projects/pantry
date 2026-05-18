@@ -66,6 +66,29 @@ const authConfig = {
       if (account?.provider === "google") {
         await connectMongo();
         
+        const currentSession = await auth();
+        const currentUserId = currentSession?.user?.id;
+
+        if (currentUserId) {
+          const currentUser = await User.findById(currentUserId);
+          if (currentUser) {
+            currentUser.providerAccountId = account.providerAccountId;
+            currentUser.provider = "google";
+            if (!currentUser.avatarUrl && user.image) {
+              currentUser.avatarUrl = user.image;
+            }
+            if (!currentUser.email && user.email) {
+              currentUser.email = user.email.toLowerCase();
+            }
+            await currentUser.save();
+
+            user.id = String(currentUser._id);
+            (user as any).role = currentUser.role;
+            user.name = currentUser.username;
+            return true;
+          }
+        }
+
         // Find by provider account ID or email
         const existing = await User.findOne({
           $or: [

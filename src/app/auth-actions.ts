@@ -42,6 +42,11 @@ export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
 }
 
+export async function attachGoogleAction() {
+  const { signIn } = await import("@/auth");
+  await signIn("google", { redirectTo: "/" });
+}
+
 export async function changeOwnPassword(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) {
