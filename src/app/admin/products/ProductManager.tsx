@@ -212,7 +212,10 @@ export function ProductManager({
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => setMergingProduct(product)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMergingProduct(product);
+                            }}
                             className="h-7 w-7 rounded-lg text-amber-500/70 hover:bg-amber-500/10 hover:text-amber-500"
                             title="Merge"
                           >
@@ -221,7 +224,10 @@ export function ProductManager({
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDeleteProduct(product.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProduct(product.id);
+                            }}
                             className="h-7 w-7 rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
                             title="Delete"
                           >
