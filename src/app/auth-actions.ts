@@ -38,11 +38,25 @@ export async function changePassword(formData: FormData) {
 }
 
 export async function logoutAction() {
+  const { headers } = await import("next/headers");
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") || headersList.get("host");
+  const proto = headersList.get("x-forwarded-proto") || "https";
+  if (host) {
+    process.env.AUTH_URL = `${proto}://${host}/api/auth`;
+  }
   const { signOut } = await import("@/auth");
   await signOut({ redirectTo: "/login" });
 }
 
 export async function attachGoogleAction() {
+  const { headers } = await import("next/headers");
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") || headersList.get("host");
+  const proto = headersList.get("x-forwarded-proto") || "https";
+  if (host) {
+    process.env.AUTH_URL = `${proto}://${host}/api/auth`;
+  }
   const { signIn } = await import("@/auth");
   await signIn("google", { redirectTo: "/" });
 }

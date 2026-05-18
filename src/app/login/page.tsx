@@ -35,6 +35,13 @@ export default function LoginPage() {
                 {googleEnabled ? (
                   <form action={async () => {
                     "use server";
+                    const { headers } = await import("next/headers");
+                    const headersList = await headers();
+                    const host = headersList.get("x-forwarded-host") || headersList.get("host");
+                    const proto = headersList.get("x-forwarded-proto") || "https";
+                    if (host) {
+                      process.env.AUTH_URL = `${proto}://${host}/api/auth`;
+                    }
                     await signIn("google", { redirectTo: "/" });
                   }}>
                     <Button type="submit" variant="outline" className="w-full">Continue with Google</Button>
