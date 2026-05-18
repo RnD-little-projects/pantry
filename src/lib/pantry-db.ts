@@ -794,8 +794,53 @@ export async function adminMergeProducts(sourceId: string, targetId: string) {
   return true;
 }
 
-export async function adminDeleteProduct(productId: string) {
+export async function adminDeleteProduct(productId: string, adminUserId?: string) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
-  return Product.findByIdAndUpdate(productId, { active: false });
+
+  const product = await Product.findByIdAndUpdate(productId, { active: false });
+  if (!product) return null;
+
+  // Remove this product from all orders that have it
+  const affectedOrders = await Order.find({ "items.productId": productId });
+  for (const order of affectedOrders) {
+    const originalItems = order.items || [];
+    let modified = false;
+    const remainingItems = [];
+
+    for (let i = 0; i < originalItems.length; i++) {
+      const item = originalItems[i];
+      if (String(item.productId) === String(productId)) {
+        modified = true;
+        if (adminUserId) {
+          await AuditLog.create({
+            actorId: adminUserId,
+            targetType: "order",
+            targetId: order.publicId,
+            action: "item_remove",
+            before: {
+              itemName: item.itemName,
+              quantityLabel: item.quantityLabel,
+              fullItem: item,
+              index: i
+            },
+            note: `Admin removed deleted product: ${item.itemName}`,
+          });
+        }
+      } else {
+        remainingItems.push(item);
+      }
+    }
+
+    if (modified) {
+      order.items = remainingItems;
+      order.markModified("items");
+      await order.save();
+      if (order.publicId && order.authorId) {
+        await syncBackupToFile(order.publicId, String(order.authorId));
+      }
+    }
+  }
+
+  return product;
 }

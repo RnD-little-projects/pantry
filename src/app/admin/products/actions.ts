@@ -2,6 +2,7 @@
 
 import { adminUpdateProduct, adminDeleteProduct, adminUpsertCategory, adminMergeProducts } from "@/lib/pantry-db";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 
 export async function saveProductAction(data: Record<string, unknown>) {
   try {
@@ -18,7 +19,9 @@ export async function saveProductAction(data: Record<string, unknown>) {
 
 export async function deleteProductAction(id: string) {
   try {
-    await adminDeleteProduct(id);
+    const session = await auth();
+    const adminUserId = session?.user?.id;
+    await adminDeleteProduct(id, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
     return { success: true };
