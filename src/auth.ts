@@ -148,6 +148,11 @@ const authConfig = {
         if (session.forcePasswordChange !== undefined) {
           token.forcePasswordChange = session.forcePasswordChange;
         }
+        if (session.user?.email !== undefined) {
+          token.email = session.user.email;
+        } else if (session.email !== undefined) {
+          token.email = session.email;
+        }
       }
 
       if (user) {
@@ -155,6 +160,9 @@ const authConfig = {
         token.username = user.name ?? undefined;
         token.role = user.role ?? "user";
         token.forcePasswordChange = user.forcePasswordChange ?? false;
+        if (user.email) {
+          token.email = user.email;
+        }
       }
 
       if (account?.provider === "google") {
@@ -182,6 +190,10 @@ const authConfig = {
 
       if (session.user && token.forcePasswordChange !== undefined) {
         session.user.forcePasswordChange = token.forcePasswordChange;
+      }
+
+      if (session.user && token.email !== undefined) {
+        session.user.email = token.email as string;
       }
 
       // DB Level check for forcePasswordChange

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 
 interface DialogProps {
@@ -21,6 +22,12 @@ export function Dialog({
   children,
   footer,
 }: DialogProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -32,9 +39,9 @@ export function Dialog({
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  const content = (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
@@ -43,7 +50,7 @@ export function Dialog({
       />
       
       {/* Content */}
-      <div className="relative w-full max-w-md scale-100 overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md scale-100 overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
           <button
@@ -70,4 +77,6 @@ export function Dialog({
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }

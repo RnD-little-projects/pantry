@@ -17,6 +17,14 @@ import { SessionList } from "./sidebar/nav-list";
 import { AccountMenu, type ThemeMode } from "./sidebar/account-menu";
 import { MarketModal } from "./market-modal";
 
+type UserProfile = {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  image?: string | null;
+  role?: string;
+};
+
 type PantryLayoutProps = {
   active: "overview" | "market" | "users";
   children: ReactNode;
@@ -24,6 +32,7 @@ type PantryLayoutProps = {
   marketItems?: ReadonlyArray<MarketItem>;
   showSidebar?: boolean;
   userRole?: string;
+  user?: UserProfile;
 };
 
 /**
@@ -40,6 +49,7 @@ export function PantryLayout({
   marketItems = [],
   showSidebar = true,
   userRole,
+  user,
 }: Readonly<PantryLayoutProps>) {
   const [collapsed, setCollapsed] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
@@ -222,6 +232,7 @@ export function PantryLayout({
                 onOpenChange={setAccountOpen}
                 onThemeChange={setThemeMode}
                 userRole={userRole}
+                user={user}
               />
             </div>
           </aside>
