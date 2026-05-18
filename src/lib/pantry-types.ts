@@ -35,6 +35,7 @@ export type OrderHistoryEntry = {
   quantity: string;
   action: string;
   rawAction?: string;
+  isAdminRemove?: boolean;
 };
 
 export type SharedOrderView = {

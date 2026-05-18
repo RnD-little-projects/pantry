@@ -14,15 +14,18 @@ type HistoryItem = {
   quantity: string;
   action: string;
   rawAction?: string;
+  isAdminRemove?: boolean;
 };
 
 export function ActivityLogMobileModal({ 
   historyItems, 
   isCreator, 
+  isAdmin,
   publicId 
 }: { 
   historyItems: HistoryItem[], 
   isCreator: boolean, 
+  isAdmin?: boolean,
   publicId: string 
 }) {
   const [open, setOpen] = useState(false);
@@ -57,7 +60,7 @@ export function ActivityLogMobileModal({
                     <span className="mx-1.5 opacity-30">•</span>
                     <span>{entry.quantity}</span>
                   </div>
-                  {isCreator && entry.rawAction === "item_remove" && (
+                  {(entry.isAdminRemove ? isAdmin : isCreator) && entry.rawAction === "item_remove" && (
                     <UndoActionButton publicId={publicId} auditLogId={entry.id} />
                   )}
                 </div>

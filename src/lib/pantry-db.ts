@@ -492,7 +492,10 @@ export async function undoRemoveOrderItem(publicId: string, userId: string, audi
   const order = await Order.findOne({ publicId });
   if (!order) throw new Error("ORDER_NOT_FOUND");
 
-  if (!order.authorId || String(order.authorId) !== String(userId)) {
+  const user = await User.findById(userId).lean();
+  const isAdmin = user?.role === "admin";
+
+  if (!isAdmin && (!order.authorId || String(order.authorId) !== String(userId))) {
     throw new Error("FORBIDDEN");
   }
 
@@ -549,6 +552,7 @@ export async function getOrderHistory(publicId: string): Promise<OrderHistoryEnt
       quantity: String(after.quantityLabel || before.quantityLabel || after.quantity || "-"),
       action: String(entry.action).replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase()),
       rawAction: String(entry.action),
+      isAdminRemove: before.isAdminRemove === true,
     };
   });
 }

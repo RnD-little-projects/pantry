@@ -90,7 +90,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
               {isCreator && !isArchived && <ArchiveOrderDialog publicId={publicId} orderTitle={order.title} />}
               <Badge variant={isCreator ? "default" : "secondary"} className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider">{accessLabel}</Badge>
               {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
-              <ActivityLogMobileModal historyItems={historyItems} isCreator={isCreator} publicId={publicId} />
+              <ActivityLogMobileModal historyItems={historyItems} isCreator={isCreator} isAdmin={session?.user?.role === "admin"} publicId={publicId} />
             </div>
           </div>
         </div>
@@ -269,7 +269,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                           <span className="mx-1.5 opacity-30">•</span>
                           <span>{entry.quantity}</span>
                         </div>
-                        {isCreator && entry.rawAction === "item_remove" && (
+                        {(entry.isAdminRemove ? session?.user?.role === "admin" : isCreator) && entry.rawAction === "item_remove" && (
                           <UndoActionButton publicId={publicId} auditLogId={entry.id} />
                         )}
                       </div>
