@@ -18,7 +18,7 @@ import { AccountMenu, type ThemeMode } from "./sidebar/account-menu";
 import { MarketModal } from "./market-modal";
 
 type PantryLayoutProps = {
-  active: "overview" | "market";
+  active: "overview" | "market" | "users";
   children: ReactNode;
   sessions?: ReadonlyArray<WorkspaceSession>;
   marketItems?: ReadonlyArray<MarketItem>;

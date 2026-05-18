@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { PantryLayout } from "@/components/pantry-layout";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PublicShareToggle } from "@/components/public-share-toggle";
 import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
@@ -129,7 +129,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
             {/* Left Column: Main Order Content */}
             <div className="space-y-6">
             {/* ── Mobile Card Layout (< sm) ── */}
-            <div className="sm:hidden space-y-3">
+            <div className="sm:hidden space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar pr-1">
               {/* Item Composer - Only show to creator if not archived */}
               {isCreator && !isArchived && (
                 <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/30 backdrop-blur-md shadow-sm">
@@ -191,8 +191,8 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
 
             {/* ── Desktop Table Layout (≥ sm) ── */}
             <div className="hidden sm:block overflow-hidden rounded-2xl border border-border/50 bg-card/30 backdrop-blur-md shadow-sm">
-              <Table>
-                <TableHeader>
+              <Table containerClassName="max-h-[calc(100vh-16rem)] custom-scrollbar">
+                <TableHeader className="sticky top-0 z-20 bg-card/95 backdrop-blur-md shadow-sm">
                   <TableRow className="border-b border-border/40 hover:bg-transparent">
                     <TableHead className="pl-6 w-[45%] text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Item Name</TableHead>
                     <TableHead className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Qty</TableHead>
@@ -229,7 +229,9 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                       )}
                     </TableRow>
                   ))}
-                  <TableRow className="border-t-2 border-border/40 bg-primary/[0.02] hover:bg-primary/[0.04]">
+                </TableBody>
+                <TableFooter className="sticky bottom-0 z-20 bg-card/95 backdrop-blur-md border-t-2 border-border/40 shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+                  <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={3} className="py-4 pl-6 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/80">
                       Grand total
                     </TableCell>
@@ -238,7 +240,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                     </TableCell>
                     {isCreator && <TableCell />}
                   </TableRow>
-                </TableBody>
+                </TableFooter>
               </Table>
             </div>
           </div>

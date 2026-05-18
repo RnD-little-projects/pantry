@@ -75,6 +75,10 @@ const authConfig = {
         });
 
         if (!existing) {
+          if (process.env.ALLOW_REGISTRATION === "false") {
+            return false;
+          }
+
           const userCount = await User.countDocuments();
           const isFirstUser = userCount === 0;
           const allowFirstAdmin = process.env.ALLOW_FIRST_LOGIN_ADMIN === "true";

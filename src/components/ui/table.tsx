@@ -2,9 +2,9 @@ import type { HTMLAttributes, TableHTMLAttributes, TdHTMLAttributes } from "reac
 
 import { cn } from "../../lib/utils";
 
-export function Table({ className, ...props }: Readonly<TableHTMLAttributes<HTMLTableElement>>) {
+export function Table({ className, containerClassName, ...props }: Readonly<TableHTMLAttributes<HTMLTableElement> & { containerClassName?: string }>) {
   return (
-    <div className="relative w-full overflow-auto">
+    <div className={cn("relative w-full overflow-auto", containerClassName)}>
       <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );
@@ -44,4 +44,13 @@ export function TableHead({ className, ...props }: Readonly<HTMLAttributes<HTMLT
 
 export function TableCell({ className, ...props }: Readonly<TdHTMLAttributes<HTMLTableCellElement>>) {
   return <td className={cn("p-4 align-middle text-sm text-foreground", className)} {...props} />;
+}
+
+export function TableFooter({ className, ...props }: Readonly<HTMLAttributes<HTMLTableSectionElement>>) {
+  return (
+    <tfoot
+      className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
+      {...props}
+    />
+  );
 }
