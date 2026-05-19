@@ -22,6 +22,21 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const newPassword = formData.get("newPassword") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (!newPassword || newPassword.length < 6) {
+      toast("Password must be at least 6 characters long", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast("Passwords do not match", "error");
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await changeOwnPassword(formData);
       if (result.success) {
@@ -69,7 +84,30 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading}>
+          <Button 
+            type="button" 
+            onClick={(e) => {
+              const form = e.currentTarget.closest("form");
+              if (!form) return;
+
+              const formData = new FormData(form);
+              const newPassword = formData.get("newPassword") as string;
+              const confirmPassword = formData.get("confirmPassword") as string;
+
+              if (!newPassword || newPassword.length < 6) {
+                toast("Password must be at least 6 characters long", "error");
+                return;
+              }
+
+              if (newPassword !== confirmPassword) {
+                toast("Passwords do not match", "error");
+                return;
+              }
+
+              form.requestSubmit();
+            }}
+            disabled={loading}
+          >
             {loading ? "Updating..." : "Update Password"}
           </Button>
         </div>

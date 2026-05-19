@@ -1,12 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
-
-import { signIn } from "@/auth";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { connectMongo } from "@/lib/db/mongodb";
-import { User } from "@/models";
+import { RegisterForm } from "./register-form";
 
 type RegisterPageProps = {
   searchParams?: Promise<{
@@ -20,20 +14,6 @@ function getFirstParam(value: string | string[] | undefined) {
   }
 
   return value;
-}
-
-function toErrorRedirect(message: string) {
-  return `/register?error=${encodeURIComponent(message)}`;
-}
-
-function isRedirectError(error: unknown) {
-  return Boolean(
-    error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof (error as { digest?: unknown }).digest === "string" &&
-      (error as { digest: string }).digest.startsWith("NEXT_REDIRECT"),
-  );
 }
 
 export default async function RegisterPage({ searchParams }: Readonly<RegisterPageProps>) {
@@ -72,97 +52,7 @@ export default async function RegisterPage({ searchParams }: Readonly<RegisterPa
                   Account registration is currently disabled by administrator.
                 </div>
               ) : (
-                <form
-                  action={async (formData) => {
-                    "use server";
-                    if (process.env.ALLOW_REGISTRATION === "false") {
-                      redirect(toErrorRedirect("Account registration is currently disabled by administrator."));
-                    }
-                    try {
-                      const username = String(formData.get("username") ?? "").trim();
-                      const emailRaw = String(formData.get("email") ?? "").trim();
-                      const email = emailRaw ? emailRaw.toLowerCase() : undefined;
-                      const password = String(formData.get("password") ?? "");
-                      const confirmPassword = String(formData.get("confirmPassword") ?? "");
-
-                      if (username.length < 3) {
-                        redirect(toErrorRedirect("Username must be at least 3 characters."));
-                      }
-
-                      if (password.length < 8) {
-                        redirect(toErrorRedirect("Password must be at least 8 characters."));
-                      }
-
-                      if (password !== confirmPassword) {
-                        redirect(toErrorRedirect("Passwords do not match."));
-                      }
-
-                      await connectMongo();
-
-                      const existingUser = await User.findOne({
-                        $or: email ? [{ username }, { email }] : [{ username }],
-                      })
-                        .select("_id")
-                        .lean();
-
-                      if (existingUser) {
-                        redirect(toErrorRedirect("Username or email is already in use."));
-                      }
-
-                      const userCount = await User.countDocuments();
-                      const isFirstUser = userCount === 0;
-                      const allowFirstAdmin = process.env.ALLOW_FIRST_LOGIN_ADMIN === "true";
-                      const role = isFirstUser && allowFirstAdmin ? "admin" : "user";
-                      const passwordHash = await bcrypt.hash(password, 12);
-
-                      await User.create({
-                        username,
-                        ...(email ? { email } : {}),
-                        passwordHash,
-                        provider: "local",
-                        isActive: true,
-                        role,
-                      });
-
-                      await signIn("credentials", {
-                        username,
-                        password,
-                        redirectTo: "/",
-                      });
-                    } catch (error) {
-                      if (isRedirectError(error)) {
-                        throw error;
-                      }
-
-                      console.error("Registration failed", {
-                        error,
-                      });
-
-                      redirect(
-                        toErrorRedirect("Registration is temporarily unavailable. Please check your database connection and try again."),
-                      );
-                    }
-                  }}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="username">Username</label>
-                    <input id="username" name="username" type="text" minLength={3} required className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="email">Email (optional)</label>
-                    <input id="email" name="email" type="email" className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="password">Password</label>
-                    <input id="password" name="password" type="password" minLength={8} required className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium" htmlFor="confirmPassword">Confirm password</label>
-                    <input id="confirmPassword" name="confirmPassword" type="password" minLength={8} required className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary" />
-                  </div>
-                  <Button type="submit" className="w-full">Create account</Button>
-                </form>
+                <RegisterForm />
               )}
 
               <p className="text-center text-xs text-muted-foreground">

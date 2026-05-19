@@ -20,6 +20,21 @@ export default function ForcePasswordChangeForm() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (!password || password.length < 6) {
+      toast("Password must be at least 6 characters long", "error");
+      setLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast("Passwords do not match", "error");
+      setLoading(false);
+      return;
+    }
+
     try {
       const result = await changePassword(formData);
       if (result.success) {
@@ -89,7 +104,27 @@ export default function ForcePasswordChangeForm() {
           </CardContent>
           <CardFooter>
             <Button 
-              type="submit" 
+              type="button" 
+              onClick={(e) => {
+                const form = e.currentTarget.closest("form");
+                if (!form) return;
+                
+                const formData = new FormData(form);
+                const password = formData.get("password") as string;
+                const confirmPassword = formData.get("confirmPassword") as string;
+
+                if (!password || password.length < 6) {
+                  toast("Password must be at least 6 characters long", "error");
+                  return;
+                }
+
+                if (password !== confirmPassword) {
+                  toast("Passwords do not match", "error");
+                  return;
+                }
+
+                form.requestSubmit();
+              }}
               className="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-6"
               disabled={loading}
             >
