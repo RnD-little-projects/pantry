@@ -826,7 +826,8 @@ export async function adminDeleteProduct(productId: string, adminUserId?: string
               itemName: item.itemName,
               quantityLabel: item.quantityLabel,
               fullItem: item,
-              index: i
+              index: i,
+              isAdminRemove: true
             },
             note: `Admin removed deleted product: ${item.itemName}`,
           });

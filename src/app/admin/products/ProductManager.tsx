@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { saveProductAction, deleteProductAction, saveCategoryAction, mergeProductsAction, updateProductCategoryAction } from "./actions";
@@ -39,6 +39,14 @@ export function ProductManager({
   const [isSaving, setIsSaving] = useState(false);
   const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
 
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
+
+  useEffect(() => {
+    setCategories(initialCategories);
+  }, [initialCategories]);
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct?.name) return;
@@ -71,7 +79,10 @@ export function ProductManager({
     try {
       const result = await saveCategoryAction(newCategoryName);
       if (result.success && result.id) {
-        setCategories([...categories, { id: result.id, name: newCategoryName }]);
+        setCategories(prev => {
+          if (prev.some(c => c.id === result.id)) return prev;
+          return [...prev, { id: result.id, name: newCategoryName }];
+        });
         setNewCategoryName("");
       }
     } catch (error) {
@@ -119,64 +130,85 @@ export function ProductManager({
   const uncategorizedProducts = products.filter(p => !p.categoryId);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5 text-left">
       {/* Category Management */}
-      <Card className="border-border/40 bg-card/20 backdrop-blur-md shadow-sm">
+      <Card className="border-border/40 bg-card/20 backdrop-blur-md shadow-sm max-w-xl">
         <CardContent className="pt-6">
-          <div className="flex gap-4">
+          <div className="flex gap-4 items-center">
             <input 
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="New Category Name"
-              className="flex-1 bg-transparent border-b border-border/40 text-sm focus:outline-none focus:border-primary px-2 transition-colors"
+              className="flex-1 bg-transparent border-b border-border/40 text-sm focus:outline-none focus:border-primary px-2 py-1 transition-colors"
             />
             <Button onClick={handleSaveCategory} size="sm" className="rounded-xl px-6">Add Category</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Product List Organized by Category - Grid Layout */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {[...categoriesWithProducts, { id: null, name: "Uncategorized", products: uncategorizedProducts }].map((group) => (
+      {/* Product List Organized by Category - Flex Wrap Layout for Left Alignment & Optimal Spacing */}
+      <div className="flex flex-wrap items-start gap-4 justify-start">
+        {[
+          ...categoriesWithProducts, 
+          { id: null, name: "Uncategorized", products: uncategorizedProducts },
+          { id: "no-price", name: "Needs Price", products: products.filter(p => p.price === null || p.price === undefined) }
+        ].map((group, index) => (
           <Card 
-            key={group.id || "uncategorized"} 
+            key={`${group.id || "uncategorized"}-${index}`} 
             className={cn(
-              "flex flex-col h-[480px] border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all hover:shadow-lg hover:border-border/60",
-              dragOverCategoryId === group.id && "border-primary ring-2 ring-primary/20 bg-primary/5"
+              "flex flex-col w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.67rem)] xl:w-[calc(25%-0.75rem)] min-w-[260px] h-fit max-h-[420px] border-border/40 bg-card/40 backdrop-blur-md shadow-sm transition-all hover:shadow-lg hover:border-border/60 text-left",
+              dragOverCategoryId === group.id && group.id !== "no-price" && "border-primary ring-2 ring-primary/20 bg-primary/5",
+              group.id === "no-price" && "border-amber-500/40 bg-amber-500/5 hover:border-amber-500/60 shadow-amber-500/10"
             )}
             onDragOver={(e) => {
+              if (group.id === "no-price") return;
               e.preventDefault();
               setDragOverCategoryId(group.id);
             }}
             onDragLeave={() => setDragOverCategoryId(null)}
-            onDrop={() => handleDrop(group.id)}
+            onDrop={() => {
+              if (group.id === "no-price") return;
+              handleDrop(group.id);
+            }}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border/20 bg-muted/20">
               <div className="flex items-center gap-2">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground/80">
+                <h3 className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.25em]",
+                  group.id === "no-price" ? "text-amber-600 dark:text-amber-400 font-extrabold" : "text-muted-foreground/80"
+                )}>
                   {group.name}
                 </h3>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted/50 border border-border/40 text-muted-foreground/60">
+                <span className={cn(
+                  "text-[9px] font-bold px-1.5 py-0.5 rounded-full border",
+                  group.id === "no-price" 
+                    ? "bg-amber-500/20 border-amber-500/40 text-amber-700 dark:text-amber-300" 
+                    : "bg-muted/50 border-border/40 text-muted-foreground/60"
+                )}>
                   {group.products.length}
                 </span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
-                onClick={() => setEditingProduct({ categoryId: group.id || undefined })}
-                title={`Add product to ${group.name}`}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+              {group.id !== "no-price" && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-7 w-7 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+                  onClick={() => setEditingProduct({ categoryId: group.id || undefined })}
+                  title={`Add product to ${group.name}`}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Product List */}
             <div className="flex-1 overflow-y-auto no-scrollbar p-3">
               {group.products.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full opacity-20 grayscale">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em]">No items</p>
+                <div className="flex flex-col items-center justify-center py-8 opacity-30 grayscale">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em]">
+                    {group.id === "no-price" ? "All items priced" : "No items"}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1.5">
@@ -184,8 +216,9 @@ export function ProductManager({
                     <div 
                       key={product.id} 
                       className="group relative"
-                      draggable
+                      draggable={group.id !== "no-price"}
                       onDragStart={(e) => {
+                        if (group.id === "no-price") return;
                         window.localStorage.setItem("draggingProductId", product.id);
                         e.dataTransfer.setData("productId", product.id);
                         e.dataTransfer.effectAllowed = "move";
@@ -193,10 +226,13 @@ export function ProductManager({
                     >
                       <div 
                         onClick={() => setEditingProduct(product)}
-                        className="flex items-center justify-between rounded-2xl px-3.5 py-2.5 transition-all hover:bg-primary/5 active:bg-primary/10 cursor-grab active:cursor-grabbing"
+                        className={cn(
+                          "flex items-center justify-between rounded-2xl px-3.5 py-2.5 transition-all hover:bg-primary/5 active:bg-primary/10 cursor-pointer text-left",
+                          group.id !== "no-price" && "cursor-grab active:cursor-grabbing"
+                        )}
                       >
-                        <div className="flex-1 flex items-center gap-3 truncate pr-3">
-                          <div className="text-xs font-semibold text-foreground/70 hover:text-primary transition-colors truncate">
+                        <div className="flex-1 flex items-center gap-3 truncate pr-3 text-left">
+                          <div className="text-xs font-semibold text-foreground/70 hover:text-primary transition-colors truncate text-left">
                             {product.name}
                           </div>
                           
@@ -212,7 +248,10 @@ export function ProductManager({
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => setMergingProduct(product)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMergingProduct(product);
+                            }}
                             className="h-7 w-7 rounded-lg text-amber-500/70 hover:bg-amber-500/10 hover:text-amber-500"
                             title="Merge"
                           >
@@ -221,7 +260,10 @@ export function ProductManager({
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={() => handleDeleteProduct(product.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteProduct(product.id);
+                            }}
                             className="h-7 w-7 rounded-lg text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
                             title="Delete"
                           >

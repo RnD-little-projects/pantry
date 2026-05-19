@@ -20,7 +20,7 @@ export default async function MarketListPage() {
   ]);
 
   return (
-    <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as Record<string, unknown>).role as string | undefined}>
+    <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
       <Card>
         <CardHeader className="border-b border-border/60">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

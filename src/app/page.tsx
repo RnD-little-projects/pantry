@@ -35,7 +35,7 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
     ]);
 
     return (
-      <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={userRole}>
+      <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={userRole} user={session.user as any}>
         <div className="space-y-6">
           <div className="px-1">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">Cashier Dashboard</h1>
@@ -100,7 +100,7 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
   ]);
 
   return (
-    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
       <div className="space-y-6">
         <div className="px-1">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">Start a fresh order</h1>
