@@ -8,21 +8,12 @@ import { startOrderAction } from "./new-order-action";
 import Link from "next/link";
 import { Package, ShoppingCart } from "lucide-react";
 
-type HomeProps = {
-  searchParams?: Promise<{
-    new?: string;
-  }>;
-};
-
-export default async function Home({ searchParams }: Readonly<HomeProps>) {
+export default async function Home() {
   const session = await auth();
 
   if (!session) {
     redirect("/login");
   }
-
-  const resolvedSearchParams = await searchParams;
-  const isExplicitNew = resolvedSearchParams?.new === "true";
 
   const userRole = (session?.user as Record<string, unknown>)?.role as string | undefined;
 
@@ -89,8 +80,8 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
 
   const publicId = await getLatestOrderPublicId((session?.user as Record<string, unknown>)?.id as string | undefined);
   
-  // If user has orders and didn't explicitly click "New Session", redirect to latest
-  if (publicId && !isExplicitNew) {
+  // If user has an active order, redirect to it
+  if (publicId) {
     redirect(`/order-list/${publicId}`);
   }
 
@@ -107,52 +98,34 @@ export default async function Home({ searchParams }: Readonly<HomeProps>) {
           <p className="mt-2 text-sm text-muted-foreground">Add your first item to begin a new private order list.</p>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-background/80 shadow-sm w-full overflow-x-auto">
-          <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Item Name</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                <TableRow>
-                  <TableCell>
-                    <input
-                      name="itemName"
-                      placeholder="What do you need?"
-                      required
-                      className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
-                      autoFocus
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <input
-                      name="quantity"
-                      type="number"
-                      placeholder="0"
-                      required
-                      className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button type="submit" size="sm">
-                      Create Order
-                    </Button>
-                  </TableCell>
-                </TableRow>
-                {/* Empty state placeholder rows */}
-                {[1, 2, 3].map((i) => (
-                  <TableRow key={i} className="opacity-20 select-none pointer-events-none">
-                    <TableCell className="h-12"></TableCell>
-                    <TableCell></TableCell>
-                    <TableCell></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <div className="max-w-xl overflow-hidden rounded-2xl border border-border/60 bg-card/50 backdrop-blur-md shadow-sm p-6">
+          <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Item Name</label>
+                <input
+                  name="itemName"
+                  placeholder="What do you need? (e.g. Milk, Apples)"
+                  required
+                  className="w-full rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors"
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quantity</label>
+                <input
+                  name="quantity"
+                  type="number"
+                  placeholder="1"
+                  min="1"
+                  required
+                  className="w-full rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors"
+                />
+              </div>
+            </div>
+            <Button type="submit" className="w-full sm:w-auto font-semibold px-6 py-2.5 rounded-xl">
+              Create Order List
+            </Button>
           </form>
         </div>
       </div>

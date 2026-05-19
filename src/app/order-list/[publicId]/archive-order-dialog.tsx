@@ -147,7 +147,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
       dismiss(loadingId);
       toast("Order archived successfully", "success");
       setOpen(false);
-      router.refresh();
+      window.location.href = "/";
     } catch (error) {
       dismiss(loadingId);
       toast((error as Error).message, "error");

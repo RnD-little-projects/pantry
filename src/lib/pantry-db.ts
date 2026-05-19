@@ -563,7 +563,8 @@ export async function getLatestOrderPublicId(userId?: string): Promise<string | 
     return null;
   }
 
-  const query = userId ? { authorId: userId } : { isPublic: true };
+  const query: Record<string, any> = userId ? { authorId: userId } : { isPublic: true };
+  query.status = { $ne: "archived" };
 
   const latestOrder = await Order.findOne(query, { publicId: 1 })
     .sort({ updatedAt: -1 })
@@ -579,6 +580,11 @@ export async function getLatestOrderPublicId(userId?: string): Promise<string | 
 export async function createNewOrder(userId: string, itemName: string, quantityLabel: string) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
+
+  const existingActiveOrder = await Order.findOne({ authorId: userId, status: { $ne: "archived" } }).lean();
+  if (existingActiveOrder) {
+    throw new Error("You already have an active order. Please archive it before creating a new one.");
+  }
 
   // Generate a simple unique publicId
   const publicId = Math.random().toString(36).substring(2, 12);
@@ -680,19 +686,32 @@ export async function getCategories() {
   return Category.find({ active: true }).sort({ name: 1 }).lean();
 }
 
-export async function adminUpsertCategory(name: string) {
+export async function adminUpsertCategory(name: string, adminUserId?: string) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
 
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  return Category.findOneAndUpdate(
+  const category = await Category.findOneAndUpdate(
     { slug },
     { name, slug, active: true },
     { upsert: true, new: true }
   );
+
+  if (adminUserId && category) {
+    await AuditLog.create({
+      actorId: adminUserId,
+      targetType: "category",
+      targetId: String(category._id),
+      action: "category_upsert",
+      after: { name, slug },
+      note: `Admin upserted category ${name}`
+    });
+  }
+
+  return category;
 }
 
-export async function adminUpdateProduct(productId: string | null, data: Record<string, unknown>) {
+export async function adminUpdateProduct(productId: string | null, data: Record<string, unknown>, adminUserId?: string) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
 
@@ -731,13 +750,35 @@ export async function adminUpdateProduct(productId: string | null, data: Record<
       );
     }
     
+    if (adminUserId && product) {
+      await AuditLog.create({
+        actorId: adminUserId,
+        targetType: "product",
+        targetId: productId,
+        action: "product_update",
+        after: updateData,
+        note: `Admin updated product ${product.name}`
+      });
+    }
+
     return product;
   } else {
-    return Product.create(updateData);
+    const product = await Product.create(updateData);
+    if (adminUserId) {
+      await AuditLog.create({
+        actorId: adminUserId,
+        targetType: "product",
+        targetId: String(product._id),
+        action: "product_create",
+        after: updateData,
+        note: `Admin created product ${product.name}`
+      });
+    }
+    return product;
   }
 }
 
-export async function adminMergeProducts(sourceId: string, targetId: string) {
+export async function adminMergeProducts(sourceId: string, targetId: string, adminUserId?: string) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
 
@@ -795,6 +836,18 @@ export async function adminMergeProducts(sourceId: string, targetId: string) {
     }
   }
 
+  if (adminUserId) {
+    await AuditLog.create({
+      actorId: adminUserId,
+      targetType: "product",
+      targetId: targetId,
+      action: "product_merge",
+      before: { sourceId, sourceName: source.name },
+      after: { targetId, targetName: target.name },
+      note: `Admin merged product ${source.name} into ${target.name}`
+    });
+  }
+
   return true;
 }
 
@@ -804,6 +857,18 @@ export async function adminDeleteProduct(productId: string, adminUserId?: string
 
   const product = await Product.findByIdAndUpdate(productId, { active: false });
   if (!product) return null;
+
+  if (adminUserId) {
+    await AuditLog.create({
+      actorId: adminUserId,
+      targetType: "product",
+      targetId: productId,
+      action: "product_delete",
+      before: { name: product.name, active: product.active },
+      after: { active: false },
+      note: `Admin soft-deleted product ${product.name}`
+    });
+  }
 
   // Remove this product from all orders that have it
   const affectedOrders = await Order.find({ "items.productId": productId });
@@ -848,4 +913,68 @@ export async function adminDeleteProduct(productId: string, adminUserId?: string
   }
 
   return product;
+}
+
+export async function getAuditLogUsers() {
+  const ready = await canUseMongo();
+  if (!ready) return [];
+
+  const distinctActorIds = await AuditLog.distinct("actorId");
+  const users = await User.find({ _id: { $in: distinctActorIds } }, { username: 1, email: 1 }).lean();
+  return JSON.parse(JSON.stringify(users));
+}
+
+export async function getPaginatedAuditLogs(
+  page = 1, 
+  limit = 20, 
+  searchQuery = "", 
+  selectedUsers: string[] = [], 
+  selectedActions: string[] = []
+) {
+  const ready = await canUseMongo();
+  if (!ready) return { logs: [], hasMore: false };
+
+  const query: Record<string, any> = {};
+
+  if (searchQuery.trim()) {
+    const q = searchQuery.trim();
+    const matchingUsers = await User.find({
+      $or: [
+        { username: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } }
+      ]
+    }, { _id: 1 }).lean();
+    const userIds = matchingUsers.map((u: Record<string, unknown>) => u._id);
+
+    query.$or = [
+      { note: { $regex: q, $options: "i" } },
+      { targetId: { $regex: q, $options: "i" } },
+      { action: { $regex: q, $options: "i" } },
+      { actorId: { $in: userIds } }
+    ];
+  }
+
+  if (selectedUsers.length > 0) {
+    query.actorId = { $in: selectedUsers };
+  }
+
+  if (selectedActions.length > 0) {
+    query.action = { $in: selectedActions };
+  }
+
+  const skip = (page - 1) * limit;
+  const logs = await AuditLog.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit + 1)
+    .populate("actorId", "username email avatarUrl")
+    .lean();
+
+  const hasMore = logs.length > limit;
+  const slicedLogs = hasMore ? logs.slice(0, limit) : logs;
+
+  return {
+    logs: JSON.parse(JSON.stringify(slicedLogs)),
+    hasMore
+  };
 }

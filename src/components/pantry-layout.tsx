@@ -76,7 +76,7 @@ export function PantryLayout({
   }, []);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-background text-foreground transition-colors duration-300">
+    <main className="relative min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Background Grid Pattern */}
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(var(--grid-color)_1px,transparent_1px),linear-gradient(90deg,var(--grid-color)_1px,transparent_1px)] bg-[size:72px_72px] opacity-100" />
 
@@ -172,18 +172,32 @@ export function PantryLayout({
                         <span className="truncate text-sm tracking-wide transition-all">Item Management</span>
                       </Link>
                       {userRole === "admin" && (
-                        <Link
-                          href="/admin/users"
-                          className={cn(
-                            "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
-                            pathname === "/admin/users" 
-                              ? "text-foreground font-bold bg-muted/50" 
-                              : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
-                          )}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <span className="truncate text-sm tracking-wide transition-all">User Management</span>
-                        </Link>
+                        <>
+                          <Link
+                            href="/admin/users"
+                            className={cn(
+                              "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                              pathname === "/admin/users" 
+                                ? "text-foreground font-bold bg-muted/50" 
+                                : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                            )}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span className="truncate text-sm tracking-wide transition-all">User Management</span>
+                          </Link>
+                          <Link
+                            href="/admin/audit-logs"
+                            className={cn(
+                              "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                              pathname === "/admin/audit-logs" 
+                                ? "text-foreground font-bold bg-muted/50" 
+                                : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                            )}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span className="truncate text-sm tracking-wide transition-all">Audit Logs</span>
+                          </Link>
+                        </>
                       )}
                     </div>
                   </div>

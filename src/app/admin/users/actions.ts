@@ -1,7 +1,7 @@
 "use server";
 
 import { connectMongo } from "@/lib/db/mongodb";
-import { User } from "@/models";
+import { User, AuditLog } from "@/models";
 import { auth } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
@@ -14,6 +14,7 @@ async function ensureAdmin() {
   if (session?.user?.role !== "admin") {
     throw new Error("Unauthorized: Admin access required");
   }
+  return session.user.id as string;
 }
 
 /**
@@ -34,10 +35,19 @@ export async function getUsers() {
  * Updates a user's status.
  */
 export async function updateUserStatus(userId: string, updates: { isActive?: boolean; role?: string; isDeleted?: boolean }) {
-  await ensureAdmin();
+  const adminId = await ensureAdmin();
   await connectMongo();
   
-  await User.findByIdAndUpdate(userId, updates);
+  const oldUser = await User.findByIdAndUpdate(userId, updates);
+  await AuditLog.create({
+    actorId: adminId,
+    targetType: "user",
+    targetId: userId,
+    action: "user_update",
+    before: { isActive: oldUser?.isActive, role: oldUser?.role, isDeleted: oldUser?.isDeleted },
+    after: updates,
+    note: `Admin updated user status/role for ${oldUser?.username}`
+  });
   revalidatePath("/admin/users");
 }
 
@@ -45,10 +55,19 @@ export async function updateUserStatus(userId: string, updates: { isActive?: boo
  * Soft deletes a user.
  */
 export async function softDeleteUser(userId: string) {
-  await ensureAdmin();
+  const adminId = await ensureAdmin();
   await connectMongo();
   
-  await User.findByIdAndUpdate(userId, { isDeleted: true, isActive: false });
+  const oldUser = await User.findByIdAndUpdate(userId, { isDeleted: true, isActive: false });
+  await AuditLog.create({
+    actorId: adminId,
+    targetType: "user",
+    targetId: userId,
+    action: "user_delete",
+    before: { isDeleted: oldUser?.isDeleted, isActive: oldUser?.isActive },
+    after: { isDeleted: true, isActive: false },
+    note: `Admin soft-deleted user ${oldUser?.username}`
+  });
   revalidatePath("/admin/users");
 }
 
@@ -56,16 +75,23 @@ export async function softDeleteUser(userId: string) {
  * Resets a user's password to a randomly generated one.
  */
 export async function resetUserPassword(userId: string) {
-  await ensureAdmin();
+  const adminId = await ensureAdmin();
   await connectMongo();
   
   // Generate a random 10-character password
   const tempPassword = Math.random().toString(36).slice(-10);
   const passwordHash = await bcrypt.hash(tempPassword, 10);
   
-  await User.findByIdAndUpdate(userId, {
+  const oldUser = await User.findByIdAndUpdate(userId, {
     passwordHash,
     forcePasswordChange: true
+  });
+  await AuditLog.create({
+    actorId: adminId,
+    targetType: "user",
+    targetId: userId,
+    action: "user_reset_password",
+    note: `Admin reset password for user ${oldUser?.username}`
   });
   
   revalidatePath("/admin/users");
@@ -77,10 +103,19 @@ export async function resetUserPassword(userId: string) {
  * Updates a user's basic info.
  */
 export async function updateUserInfo(userId: string, data: { username: string; email?: string; role: string }) {
-  await ensureAdmin();
+  const adminId = await ensureAdmin();
   await connectMongo();
   
-  await User.findByIdAndUpdate(userId, data);
+  const oldUser = await User.findByIdAndUpdate(userId, data);
+  await AuditLog.create({
+    actorId: adminId,
+    targetType: "user",
+    targetId: userId,
+    action: "user_update",
+    before: { username: oldUser?.username, email: oldUser?.email, role: oldUser?.role },
+    after: data,
+    note: `Admin updated user info for ${oldUser?.username}`
+  });
   revalidatePath("/admin/users");
 }
 
@@ -88,7 +123,7 @@ export async function updateUserInfo(userId: string, data: { username: string; e
  * Creates a new user.
  */
 export async function createUser(data: Record<string, unknown>) {
-  await ensureAdmin();
+  const adminId = await ensureAdmin();
   await connectMongo();
 
   const { username, email, role, password, forcePasswordChange } = data as {
@@ -115,13 +150,22 @@ export async function createUser(data: Record<string, unknown>) {
     passwordHash = await bcrypt.hash(password, 10);
   }
 
-  await User.create({
+  const newUser = await User.create({
     username,
     email: email?.toLowerCase() || undefined,
     role: role || "user",
     passwordHash,
     forcePasswordChange: !!forcePasswordChange,
     isActive: true,
+  });
+
+  await AuditLog.create({
+    actorId: adminId,
+    targetType: "user",
+    targetId: String(newUser._id),
+    action: "user_create",
+    after: { username, email, role },
+    note: `Admin created new user ${username}`
   });
 
   revalidatePath("/admin/users");

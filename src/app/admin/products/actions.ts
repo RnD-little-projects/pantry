@@ -6,8 +6,10 @@ import { auth } from "@/auth";
 
 export async function saveProductAction(data: Record<string, unknown>) {
   try {
+    const session = await auth();
+    const adminUserId = session?.user?.id as string | undefined;
     const { id, ...rest } = data;
-    await adminUpdateProduct((id as string | null) || null, rest);
+    await adminUpdateProduct((id as string | null) || null, rest, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
     return { success: true };
@@ -20,7 +22,7 @@ export async function saveProductAction(data: Record<string, unknown>) {
 export async function deleteProductAction(id: string) {
   try {
     const session = await auth();
-    const adminUserId = session?.user?.id;
+    const adminUserId = session?.user?.id as string | undefined;
     await adminDeleteProduct(id, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
@@ -33,7 +35,9 @@ export async function deleteProductAction(id: string) {
 
 export async function saveCategoryAction(name: string) {
   try {
-    const category = await adminUpsertCategory(name);
+    const session = await auth();
+    const adminUserId = session?.user?.id as string | undefined;
+    const category = await adminUpsertCategory(name, adminUserId);
     revalidatePath("/admin/products");
     return { success: true, id: String(category._id) };
   } catch (error) {
@@ -44,7 +48,9 @@ export async function saveCategoryAction(name: string) {
 
 export async function mergeProductsAction(sourceId: string, targetId: string) {
   try {
-    await adminMergeProducts(sourceId, targetId);
+    const session = await auth();
+    const adminUserId = session?.user?.id as string | undefined;
+    await adminMergeProducts(sourceId, targetId, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
     return { success: true };
@@ -56,7 +62,9 @@ export async function mergeProductsAction(sourceId: string, targetId: string) {
 
 export async function updateProductCategoryAction(productId: string, categoryId: string | null) {
   try {
-    await adminUpdateProduct(productId, { categoryId });
+    const session = await auth();
+    const adminUserId = session?.user?.id as string | undefined;
+    await adminUpdateProduct(productId, { categoryId }, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
     return { success: true };

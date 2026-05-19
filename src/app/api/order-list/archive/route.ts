@@ -4,6 +4,7 @@ import { connectMongo } from "@/lib/db/mongodb";
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { revalidatePath } from "next/cache";
 
 export async function POST(req: Request) {
   try {
@@ -70,6 +71,9 @@ export async function POST(req: Request) {
       action: "order_archive",
       note: `Archived order${finalReceiptUrl ? " with receipt" : ""}`,
     });
+
+    revalidatePath("/");
+    revalidatePath(`/order-list/${publicId}`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
