@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { Order, AuditLog } from "@/models";
 import { connectMongo } from "@/lib/db/mongodb";
 import { NextResponse } from "next/server";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
 export async function POST(req: Request) {
@@ -43,8 +43,10 @@ export async function POST(req: Request) {
       // Create a unique filename
       const ext = receiptFile.name.split(".").pop() || "jpg";
       const filename = `receipt-${publicId}-${Date.now()}.${ext}`;
-      const path = join(process.cwd(), "storage", "receipts", filename);
+      const dir = join(process.cwd(), "storage", "receipts");
+      const path = join(dir, filename);
 
+      await mkdir(dir, { recursive: true });
       await writeFile(path, buffer);
       
       // We will serve this through a new route /api/receipts/[filename]
