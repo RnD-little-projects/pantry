@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 
@@ -19,9 +19,14 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
   const [value, setValue] = useState(quantityLabel);
   const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
 
-  const handleBlur = async () => {
-    const cleaned = value.trim();
-    if (!isCreator || cleaned === quantityLabel) {
+  // Sync state with parent updates
+  useEffect(() => {
+    setValue(quantityLabel);
+  }, [quantityLabel]);
+
+  const saveQuantity = async (newValue: string) => {
+    const cleaned = newValue.trim();
+    if (!isCreator) {
       return;
     }
 
@@ -55,8 +60,50 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
     }
   };
 
+  const handleBlur = async () => {
+    const cleaned = value.trim();
+    if (!isCreator || cleaned === quantityLabel) {
+      return;
+    }
+    await saveQuantity(cleaned);
+  };
+
+  const handleIncrement = async () => {
+    if (!isCreator || status === "saving") return;
+    const currentNum = parseInt(value, 10);
+    const nextVal = (isNaN(currentNum) ? 0 : currentNum) + 1;
+    const strVal = String(nextVal);
+    setValue(strVal);
+    await saveQuantity(strVal);
+  };
+
+  const handleDecrement = async () => {
+    if (!isCreator || status === "saving") return;
+    const currentNum = parseInt(value, 10);
+    const nextVal = (isNaN(currentNum) ? 0 : currentNum) - 1;
+    
+    if (nextVal < 1) {
+      toast("Quantity must be at least 1", "error");
+      return;
+    }
+    
+    const strVal = String(nextVal);
+    setValue(strVal);
+    await saveQuantity(strVal);
+  };
+
   const inner = (
-    <div className="relative">
+    <div className="relative flex items-center justify-between gap-1 w-full max-w-[130px] mx-auto bg-muted/20 border border-border/40 rounded-lg p-0.5 shadow-sm group hover:border-primary/50 focus-within:border-primary transition-all duration-200">
+      <button
+        type="button"
+        onClick={handleDecrement}
+        disabled={!isCreator || status === "saving"}
+        className="w-7 h-7 flex items-center justify-center text-sm font-semibold rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 active:scale-95 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+        aria-label="Decrease quantity"
+      >
+        -
+      </button>
+      
       <input
         type="number"
         value={value}
@@ -67,10 +114,24 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
         onBlur={handleBlur}
         disabled={!isCreator}
         placeholder="0"
-        className={`w-full border-0 bg-transparent px-2 py-1 text-center text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
+        className={`w-12 border-0 bg-transparent py-0.5 text-center font-mono text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner ${!isCreator ? "cursor-not-allowed opacity-70" : ""}`}
       />
+      
+      <button
+        type="button"
+        onClick={handleIncrement}
+        disabled={!isCreator || status === "saving"}
+        className="w-7 h-7 flex items-center justify-center text-sm font-semibold rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/80 active:scale-95 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+        aria-label="Increase quantity"
+      >
+        +
+      </button>
+
+      {status === "saving" && (
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      )}
       {status === "error" && (
-        <div className="absolute right-1 top-1/2 -translate-y-1/2 text-xs text-destructive">!</div>
+        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-xs font-bold text-destructive">!</div>
       )}
     </div>
   );
@@ -85,3 +146,4 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
     </td>
   );
 }
+

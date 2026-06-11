@@ -16,6 +16,7 @@ import { ShellBrand } from "./sidebar/brand";
 import { SessionList } from "./sidebar/nav-list";
 import { AccountMenu, type ThemeMode } from "./sidebar/account-menu";
 import { MarketModal } from "./market-modal";
+import { QrModal } from "./qr-modal";
 
 type UserProfile = {
   id?: string;
@@ -53,6 +54,7 @@ export function PantryLayout({
 }: Readonly<PantryLayoutProps>) {
   const [collapsed, setCollapsed] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -222,6 +224,38 @@ export function PantryLayout({
               <Button
                 variant="secondary"
                 className={cn("w-full", collapsed ? "justify-center px-0" : "justify-between px-2")}
+                aria-label="Open QR code list"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setQrOpen(true);
+                }}
+              >
+                <div aria-hidden="true" className="w-9 shrink-0 flex justify-center text-muted-foreground">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect width="6" height="6" x="3" y="3" rx="1.5" />
+                    <rect width="6" height="6" x="15" y="3" rx="1.5" />
+                    <rect width="6" height="6" x="3" y="15" rx="1.5" />
+                    <path d="M16 16h1v2" />
+                    <path d="M20 16h1v5h-4" />
+                    <path d="M12 7h1" />
+                    <path d="M12 11h2" />
+                    <path d="M7 12v1" />
+                    <path d="M12 16v2" />
+                  </svg>
+                </div>
+                <div className={cn(
+                  "overflow-hidden transition-all duration-300",
+                  collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
+                )}>
+                  <div className="w-[155px] flex items-center pl-2">
+                    <span className="whitespace-nowrap">QR Code</span>
+                  </div>
+                </div>
+              </Button>
+
+              <Button
+                variant="secondary"
+                className={cn("w-full", collapsed ? "justify-center px-0" : "justify-between px-2")}
                 aria-label="Open market list"
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -269,6 +303,7 @@ export function PantryLayout({
 
       {/* Overlays */}
       <MarketModal open={marketOpen} onClose={() => setMarketOpen(false)} marketItems={marketItems} />
+      <QrModal open={qrOpen} onClose={() => setQrOpen(false)} />
     </main>
   );
 }
