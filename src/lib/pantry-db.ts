@@ -252,7 +252,11 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
         // Use the latest product price if available, fallback to stored unitPrice
         const populatedProduct = item.productId as Record<string, unknown> | null;
         const productPrice = populatedProduct && typeof populatedProduct === "object" && typeof populatedProduct.price === "number" ? populatedProduct.price : null;
-        const unitPrice = productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : null);
+        
+        // For archived orders, always freeze the price to item.unitPrice if it was set
+        const unitPrice = order.status === "archived" && typeof item.unitPrice === "number"
+          ? item.unitPrice
+          : (productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : null));
         
         const quantity = typeof item.quantity === "number" ? item.quantity : 1;
         const lineTotal = unitPrice !== null ? unitPrice * quantity : 0;
@@ -269,7 +273,7 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     : [];
 
   const subtotal = items.reduce((sum: number, item: { lineTotal: number }) => sum + item.lineTotal, 0);
-  const total = typeof order.total === "number" && order.status !== "draft" ? order.total : subtotal;
+  const total = typeof order.total === "number" && order.total > 0 && order.status !== "draft" ? order.total : subtotal;
 
   return {
     publicId: order.publicId as string,

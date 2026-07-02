@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
     await connectMongo();
 
-    const order = await Order.findOne({ publicId });
+    const order = await Order.findOne({ publicId }).populate("items.productId");
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -54,9 +54,30 @@ export async function POST(req: Request) {
       finalReceiptUrl = `/api/receipts/${filename}`;
     }
 
+    // Freeze item prices and calculate order totals
+    let orderSubtotal = 0;
+    if (Array.isArray(order.items)) {
+      for (const item of order.items) {
+        const populatedProduct = item.productId as Record<string, unknown> | null;
+        const productPrice = populatedProduct && typeof populatedProduct === "object" && typeof populatedProduct.price === "number"
+          ? populatedProduct.price
+          : null;
+        
+        const unitPrice = productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : 0);
+        const quantity = typeof item.quantity === "number" ? item.quantity : 1;
+        const lineTotal = unitPrice * quantity;
+
+        item.unitPrice = unitPrice;
+        item.lineTotal = lineTotal;
+        orderSubtotal += lineTotal;
+      }
+    }
+
     // Update order
     order.status = "archived";
     order.archivedAt = new Date();
+    order.subtotal = orderSubtotal;
+    order.total = orderSubtotal;
     if (finalReceiptUrl) {
       order.receiptUrl = finalReceiptUrl;
     }

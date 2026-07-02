@@ -222,8 +222,15 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
               <button
                 key={item.id}
                 type="button"
-                className="flex w-full flex-col items-start px-4 py-2 text-left hover:bg-muted/80 transition-colors"
-                onMouseDown={() => selectSuggestion(item)}
+                className="flex w-full flex-col items-start px-4 py-2 text-left hover:bg-muted/80 transition-colors cursor-pointer"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectSuggestion(item);
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  selectSuggestion(item);
+                }}
               >
                 <span className="text-sm font-medium text-foreground">{item.name}</span>
                 <span className="text-[10px] text-muted-foreground">{item.price} • {item.note}</span>
