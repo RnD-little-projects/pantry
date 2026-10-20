@@ -4,10 +4,19 @@ import { adminUpdateProduct, adminDeleteProduct, adminUpsertCategory, adminMerge
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 
+// Same roles the /admin/products page lets in.
+async function ensureStaff() {
+  const session = await auth();
+  const role = session?.user?.role;
+  if (role !== "admin" && role !== "cashier") {
+    throw new Error("Unauthorized");
+  }
+  return session?.user?.id as string | undefined;
+}
+
 export async function saveProductAction(data: Record<string, unknown>) {
   try {
-    const session = await auth();
-    const adminUserId = session?.user?.id as string | undefined;
+    const adminUserId = await ensureStaff();
     const { id, ...rest } = data;
     await adminUpdateProduct((id as string | null) || null, rest, adminUserId);
     revalidatePath("/admin/products");
@@ -21,8 +30,7 @@ export async function saveProductAction(data: Record<string, unknown>) {
 
 export async function deleteProductAction(id: string) {
   try {
-    const session = await auth();
-    const adminUserId = session?.user?.id as string | undefined;
+    const adminUserId = await ensureStaff();
     await adminDeleteProduct(id, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
@@ -35,8 +43,7 @@ export async function deleteProductAction(id: string) {
 
 export async function saveCategoryAction(name: string) {
   try {
-    const session = await auth();
-    const adminUserId = session?.user?.id as string | undefined;
+    const adminUserId = await ensureStaff();
     const category = await adminUpsertCategory(name, adminUserId);
     revalidatePath("/admin/products");
     return { success: true, id: String(category._id) };
@@ -48,8 +55,7 @@ export async function saveCategoryAction(name: string) {
 
 export async function mergeProductsAction(sourceId: string, targetId: string) {
   try {
-    const session = await auth();
-    const adminUserId = session?.user?.id as string | undefined;
+    const adminUserId = await ensureStaff();
     await adminMergeProducts(sourceId, targetId, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");
@@ -62,8 +68,7 @@ export async function mergeProductsAction(sourceId: string, targetId: string) {
 
 export async function updateProductCategoryAction(productId: string, categoryId: string | null) {
   try {
-    const session = await auth();
-    const adminUserId = session?.user?.id as string | undefined;
+    const adminUserId = await ensureStaff();
     await adminUpdateProduct(productId, { categoryId }, adminUserId);
     revalidatePath("/admin/products");
     revalidatePath("/market-list");

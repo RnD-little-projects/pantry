@@ -6,6 +6,8 @@ import { auth } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
  * Ensures the caller is an admin.
  */
@@ -136,11 +138,11 @@ export async function createUser(data: Record<string, unknown>) {
 
   if (!username) throw new Error("Username is required.");
   
-  const existingUser = await User.findOne({ username: { $regex: new RegExp(`^${username}$`, 'i') } });
+  const existingUser = await User.findOne({ username: { $regex: new RegExp(`^${escapeRegex(username)}$`, 'i') } });
   if (existingUser) throw new Error("Username already exists.");
 
   if (email) {
-    const existingEmail = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    const existingEmail = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegex(email)}$`, 'i') } });
     if (existingEmail) throw new Error("Email already exists.");
   }
 

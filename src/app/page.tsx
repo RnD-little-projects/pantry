@@ -106,10 +106,17 @@ export default async function Home() {
                 <input
                   name="itemName"
                   placeholder="What do you need? (e.g. Milk, Apples)"
+                  list="market-item-names"
+                  autoComplete="off"
                   required
                   className="w-full rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors"
                   autoFocus
                 />
+                <datalist id="market-item-names">
+                  {marketItems.map((item) => (
+                    <option key={item.id} value={item.name} />
+                  ))}
+                </datalist>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quantity</label>

@@ -132,7 +132,8 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
             <div className="sm:hidden space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar pr-1">
               {/* Item Composer - Only show to creator if not archived */}
               {isCreator && !isArchived && (
-                <div className="overflow-hidden rounded-2xl border border-border/50 bg-card/30 backdrop-blur-md shadow-sm">
+                // No overflow-hidden: it clipped the suggestion dropdown. z-10 keeps it above the item cards.
+                <div className="relative z-10 rounded-2xl border border-border/50 bg-card/30 backdrop-blur-md shadow-sm">
                   <table className="w-full"><tbody>
                     <OrderItemComposer publicId={publicId} marketItems={marketItems} />
                   </tbody></table>

@@ -212,6 +212,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
           onBlur={handleFocusOutside}
           onFocus={() => setShowSuggestions(true)}
           placeholder="Add item name"
+          autoComplete="off"
           className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
         />
         
