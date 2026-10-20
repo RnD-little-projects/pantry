@@ -65,12 +65,13 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
   const { toast, dismiss } = useToast();
   const [open, setOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+  const [paidInCash, setPaidInCash] = useState(false);
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || paidInCash) return;
 
     const handleGlobalPaste = async (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
@@ -101,7 +102,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
 
     window.addEventListener("paste", handleGlobalPaste);
     return () => window.removeEventListener("paste", handleGlobalPaste);
-  }, [open, toast]);
+  }, [open, paidInCash, toast]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,7 +129,9 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
       const formData = new FormData();
       formData.append("publicId", publicId);
       
-      if (receiptFile) {
+      if (paidInCash) {
+        formData.append("paymentMethod", "cash");
+      } else if (receiptFile) {
         formData.append("receipt", receiptFile);
       } else if (receiptUrl) {
         formData.append("receiptUrl", receiptUrl);
@@ -181,6 +184,17 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
         }
       >
         <div className="grid gap-4 py-2">
+          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-primary"
+              checked={paidInCash}
+              onChange={(e) => setPaidInCash(e.target.checked)}
+            />
+            Paid in cash (no receipt)
+          </label>
+
+          {!paidInCash && (
           <div className="grid gap-2">
             <Label>Receipt Proof</Label>
             
@@ -251,6 +265,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
               </div>
             )}
           </div>
+          )}
         </div>
       </Dialog>
     </>

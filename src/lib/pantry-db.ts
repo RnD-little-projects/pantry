@@ -285,6 +285,7 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     subtotal,
     total,
     receiptUrl: (order.receiptUrl as string) || null,
+    paymentMethod: (order.paymentMethod as "cash" | "receipt" | null) ?? null,
     isPublic: order.isPublic !== false,
     status: (order.status as "draft" | "finalized" | "paid" | "unpaid" | "archived") ?? "draft",
     isAuthor,

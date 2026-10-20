@@ -212,7 +212,19 @@ describe("POST /api/order-list/archive", () => {
     expect(order).toMatchObject({ status: "archived", subtotal: 23, total: 23 });
     expect(order.receiptUrl).toMatch(/^\/api\/receipts\/receipt-p-\d+\.png$/);
     expect(m.fsp.writeFile).toHaveBeenCalled();
+    expect(order.paymentMethod).toBe("receipt");
     expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ action: "order_archive", note: "Archived order with receipt" }));
+  });
+
+  it("marks cash payment and ignores any receipt", async () => {
+    signedIn();
+    const order = { authorId: "u1", items: [], save: vi.fn() } as Record<string, any>;
+    m.Order.findOne.mockReturnValueOnce({ populate: () => Promise.resolve(order) });
+    const file = new File(["img"], "r.png", { type: "image/png" });
+    await expectStatus(await archive(archiveReq({ publicId: "p", paymentMethod: "cash", receipt: file })), 200, { success: true });
+    expect(order.paymentMethod).toBe("cash");
+    expect(order.receiptUrl).toBeUndefined();
+    expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ note: "Archived order paid in cash" }));
   });
 
   it("returns 500 on unexpected errors", async () => {

@@ -48,6 +48,7 @@ export type SharedOrderView = {
   subtotal: number;
   total: number;
   receiptUrl?: string | null;
+  paymentMethod?: "cash" | "receipt" | null;
   isPublic: boolean;
   status: "draft" | "finalized" | "paid" | "unpaid" | "archived";
   isAuthor?: boolean;

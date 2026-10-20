@@ -54,6 +54,7 @@ const orderSchema = new Schema(
     paidAt: { type: Date, default: null },
     archivedAt: { type: Date, default: null },
     receiptUrl: { type: String, default: null },
+    paymentMethod: { type: String, enum: ["cash", "receipt", null], default: null },
   },
   { timestamps: true },
 );

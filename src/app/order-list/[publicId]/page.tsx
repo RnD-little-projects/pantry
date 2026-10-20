@@ -88,6 +88,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {isCreator && !isArchived && <ArchiveOrderDialog publicId={publicId} orderTitle={order.title} />}
+              {order.paymentMethod === "cash" && <Badge variant="secondary" className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider">Paid in Cash</Badge>}
               <Badge variant={isCreator ? "default" : "secondary"} className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider">{accessLabel}</Badge>
               {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
               <ActivityLogMobileModal historyItems={historyItems} isCreator={isCreator} isAdmin={session?.user?.role === "admin"} publicId={publicId} />

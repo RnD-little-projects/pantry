@@ -15,8 +15,10 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const publicId = formData.get("publicId") as string;
-    const receiptUrl = formData.get("receiptUrl") as string;
-    const receiptFile = formData.get("receipt") as File | null;
+    const paidInCash = formData.get("paymentMethod") === "cash";
+    // Cash payments carry no receipt
+    const receiptUrl = paidInCash ? null : (formData.get("receiptUrl") as string);
+    const receiptFile = paidInCash ? null : (formData.get("receipt") as File | null);
 
     if (!publicId) {
       return NextResponse.json({ error: "Public ID is required" }, { status: 400 });
@@ -81,6 +83,7 @@ export async function POST(req: Request) {
     if (finalReceiptUrl) {
       order.receiptUrl = finalReceiptUrl;
     }
+    order.paymentMethod = paidInCash ? "cash" : finalReceiptUrl ? "receipt" : null;
 
     await order.save();
 
@@ -90,7 +93,7 @@ export async function POST(req: Request) {
       targetType: "order",
       targetId: publicId,
       action: "order_archive",
-      note: `Archived order${finalReceiptUrl ? " with receipt" : ""}`,
+      note: `Archived order${paidInCash ? " paid in cash" : finalReceiptUrl ? " with receipt" : ""}`,
     });
 
     revalidatePath("/");
