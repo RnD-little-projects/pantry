@@ -35,6 +35,8 @@ type PantryLayoutProps = {
   showSidebar?: boolean;
   userRole?: string;
   user?: UserProfile;
+  /** Page-specific button shown on the right of the phone top bar */
+  mobileAction?: ReactNode;
 };
 
 /**
@@ -52,6 +54,7 @@ export function PantryLayout({
   showSidebar = true,
   userRole,
   user,
+  mobileAction,
 }: Readonly<PantryLayoutProps>) {
   const [collapsed, setCollapsed] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
@@ -66,6 +69,8 @@ export function PantryLayout({
   const sidebarTitle = active === "market" ? "Market" : "Your orders";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Collapsing is a desktop feature; the phone drawer always opens full width.
+  const isCollapsed = collapsed && !mobileMenuOpen;
 
   // Close mobile menu when screen resizes to desktop
   useEffect(() => {
@@ -81,17 +86,18 @@ export function PantryLayout({
   return (
     <main className="relative min-h-screen bg-background text-foreground">
       {showSidebar && (
-        <div className="sticky top-0 z-40 flex items-center justify-between bg-band px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-band-foreground lg:hidden">
-          <Link href="/" className="font-display text-xl">Pantry</Link>
+        <div className="sticky top-0 z-40 flex items-center gap-2 bg-band px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-band-foreground lg:hidden">
           <Button
             variant="ghost"
             size="icon"
             aria-label="Open menu"
-            className="text-band-foreground hover:bg-band-foreground/15"
+            className="-ml-2 text-band-foreground hover:bg-band-foreground/15"
             onClick={() => setMobileMenuOpen(true)}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
           </Button>
+          <Link href="/" className="font-display text-xl">Pantry</Link>
+          {mobileAction && <div className="ml-auto">{mobileAction}</div>}
         </div>
       )}
 
@@ -116,25 +122,27 @@ export function PantryLayout({
         {showSidebar && (
           <aside
             className={cn(
-              "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col overflow-x-hidden border-r border-border bg-background py-5 lg:border-r-0 transition-[transform,width] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:translate-x-0",
+              "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col overflow-x-hidden border-r border-border bg-sidebar py-5 transition-[transform,width] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:translate-x-0",
               mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
-              collapsed ? "w-[64px] px-2" : "w-[280px] sm:w-[320px] lg:w-[220px] px-4",
+              isCollapsed ? "w-[64px] px-2" : "w-[280px] sm:w-[320px] lg:w-[220px] px-4",
             )}
           >
             <ShellBrand
-              collapsed={collapsed}
+              collapsed={isCollapsed}
+              mobile={mobileMenuOpen}
               onToggle={() => {
                 setAccountOpen(false);
-                setCollapsed((value) => !value);
+                if (mobileMenuOpen) setMobileMenuOpen(false);
+                else setCollapsed((value) => !value);
               }}
             />
 
             {/* Navigation Area */}
-            <div className={cn("mt-5 flex-1 overflow-y-auto no-scrollbar pr-1", collapsed && "pr-0")}>
+            <div className={cn("mt-5 flex-1 overflow-y-auto no-scrollbar pr-1", isCollapsed && "pr-0")}>
               {(userRole === "admin" || userRole === "cashier") ? (
                 <div className={cn(
                   "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
-                  collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
+                  isCollapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
                 )}>
                   <div className="w-[188px] space-y-3">
                     <div className="flex items-center justify-between">
@@ -212,13 +220,13 @@ export function PantryLayout({
                 <div onClick={() => setMobileMenuOpen(false)}>
                   <div className={cn(
                     "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
-                    collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
+                    isCollapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
                   )}>
                     <div className="flex items-center justify-between mb-3">
                       <p className="px-1 text-xs font-semibold text-muted-foreground">{sidebarTitle}</p>
                     </div>
                   </div>
-                  <SessionList collapsed={collapsed} sessions={sessions} />
+                  <SessionList collapsed={isCollapsed} sessions={sessions} />
                 </div>
               )}
             </div>
@@ -227,7 +235,7 @@ export function PantryLayout({
             <div className="mt-5 space-y-3 border-t border-border pt-4 shrink-0">
               <Button
                 variant="secondary"
-                className={cn("w-full", collapsed ? "justify-center px-0" : "justify-between px-2")}
+                className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-between px-2")}
                 aria-label="Open QR code list"
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -249,7 +257,7 @@ export function PantryLayout({
                 </div>
                 <div className={cn(
                   "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
-                  collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
+                  isCollapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
                 )}>
                   <div className="w-[155px] flex items-center pl-2">
                     <span className="whitespace-nowrap">QR Code</span>
@@ -259,7 +267,7 @@ export function PantryLayout({
 
               <Button
                 variant="secondary"
-                className={cn("w-full", collapsed ? "justify-center px-0" : "justify-between px-2")}
+                className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-between px-2")}
                 aria-label="Open market list"
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -269,7 +277,7 @@ export function PantryLayout({
                 <ShoppingBasket aria-hidden="true" className="h-[18px] w-9 shrink-0 text-primary" />
                 <div className={cn(
                   "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
-                  collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
+                  isCollapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
                 )}>
                   <div className="w-[155px] flex items-center pl-2">
                     <span className="whitespace-nowrap">Market list</span>
@@ -278,7 +286,7 @@ export function PantryLayout({
               </Button>
 
               <AccountMenu
-                collapsed={collapsed}
+                collapsed={isCollapsed}
                 open={accountOpen}
                 themeMode={themeMode}
                 onOpenChange={setAccountOpen}

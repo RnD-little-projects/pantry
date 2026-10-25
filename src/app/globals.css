@@ -16,6 +16,7 @@
   --muted-foreground: 44 6% 33%;
   --accent: 45 26% 91%;
   --accent-foreground: 40 5% 11%;
+  --sidebar: 44 13% 77%;
   --band: 40 4% 22%;
   --band-foreground: 45 22% 94%;
   --highlight: 350 74% 45%;
@@ -45,6 +46,7 @@
   --muted-foreground: 43 9% 66%;
   --accent: 48 6% 22%;
   --accent-foreground: 44 22% 90%;
+  --sidebar: 40 6% 6%;
   --band: 40 6% 7%;
   --band-foreground: 44 22% 90%;
   --highlight: 351 78% 62%;
@@ -73,6 +75,7 @@
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-sidebar: hsl(var(--sidebar));
   --color-band: hsl(var(--band));
   --color-band-foreground: hsl(var(--band-foreground));
   --color-highlight: hsl(var(--highlight));

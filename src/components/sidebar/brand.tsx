@@ -7,10 +7,11 @@ import { Button } from "../ui/button";
 
 type BrandProps = {
   collapsed: boolean;
+  mobile?: boolean;
   onToggle: () => void;
 };
 
-export function ShellBrand({ collapsed, onToggle }: Readonly<BrandProps>) {
+export function ShellBrand({ collapsed, mobile = false, onToggle }: Readonly<BrandProps>) {
   return (
     <div className="relative flex w-full items-center">
       <div className={cn(
@@ -26,10 +27,10 @@ export function ShellBrand({ collapsed, onToggle }: Readonly<BrandProps>) {
         size="sm"
         className={cn(
           "h-9 w-9 shrink-0 px-0 z-50",
-          collapsed ? "mx-auto" : "ml-auto"
+          mobile ? "order-first mr-2" : collapsed ? "mx-auto" : "ml-auto"
         )}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        aria-expanded={!collapsed}
+        aria-label={mobile ? "Close menu" : collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-expanded={mobile || !collapsed}
         onClick={onToggle}
       >
         <svg
