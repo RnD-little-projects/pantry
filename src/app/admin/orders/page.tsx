@@ -26,7 +26,7 @@ export default async function AdminOrdersPage() {
     <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
       <div className="space-y-6">
         <div className="px-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Admin: User Orders</h1>
+          <h1 className="font-display text-2xl sm:text-3xl">Orders</h1>
           <p className="mt-2 text-sm text-muted-foreground">Manage and view all orders organized by user.</p>
         </div>
 

@@ -48,7 +48,7 @@ export function UserOrderList({ users }: { users: UserWithOrders[] }) {
   return (
     <div className="space-y-4">
       {users.map((user) => (
-        <Card key={user.id} className="overflow-hidden border-border/60 bg-background/50 backdrop-blur-sm transition-all hover:bg-background/80">
+        <Card key={user.id} className="overflow-hidden border-border bg-background/50 transition-[color,background-color,border-color,opacity,transform] hover:bg-background/80">
           <div 
             className="flex cursor-pointer items-center justify-between p-4"
             onClick={() => toggleUser(user.id)}
@@ -67,10 +67,10 @@ export function UserOrderList({ users }: { users: UserWithOrders[] }) {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+              <Badge variant="outline" className="text-xs">
                 {user.orderCount} Orders
               </Badge>
-              <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+              <Badge variant="secondary" className="text-xs">
                 {user.role}
               </Badge>
               <div className="text-muted-foreground transition-transform duration-200" style={{ transform: expandedUserId === user.id ? 'rotate(180deg)' : 'rotate(0deg)' }}>
@@ -80,10 +80,10 @@ export function UserOrderList({ users }: { users: UserWithOrders[] }) {
           </div>
 
           {expandedUserId === user.id && (
-            <CardContent className="border-t border-border/40 bg-muted/30 p-0">
+            <CardContent className="border-t border-border bg-muted/30 p-0">
               {loading === user.id ? (
                 <div className="flex items-center justify-center py-8">
-                  <p className="text-xs text-muted-foreground animate-pulse">Loading orders...</p>
+                  <p className="text-xs text-muted-foreground animate-pulse">Loading orders…</p>
                 </div>
               ) : orders[user.id]?.length === 0 ? (
                 <div className="py-8 text-center text-xs text-muted-foreground">
@@ -101,14 +101,14 @@ export function UserOrderList({ users }: { users: UserWithOrders[] }) {
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-foreground">{order.title}</span>
                           {!order.isPublic && (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1 text-muted-foreground">Private</Badge>
+                            <Badge variant="outline" className="text-xs h-4 px-1 text-muted-foreground">Private</Badge>
                           )}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                           {order.items} • Updated {order.updated}
                         </div>
                       </div>
-                      <Badge variant={order.preview === "Paid" ? "default" : "secondary"} className="text-[10px]">
+                      <Badge variant={order.preview === "Paid" ? "default" : "secondary"} className="text-xs">
                         {order.preview}
                       </Badge>
                     </Link>
