@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { signInAction } from "./actions";
 
@@ -38,33 +39,34 @@ export function LoginForm() {
   return (
     <form action={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="username">
+        <label className="text-sm font-semibold" htmlFor="username">
           Username
         </label>
-        <input
+        <Input
           id="username"
           name="username"
+          autoComplete="username"
+          spellCheck={false}
           type="text"
           required
           disabled={isLoading}
-          className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary disabled:opacity-50"
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="password">
+        <label className="text-sm font-semibold" htmlFor="password">
           Password
         </label>
-        <input
+        <Input
           id="password"
           name="password"
+          autoComplete="current-password"
           type="password"
           required
           disabled={isLoading}
-          className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary disabled:opacity-50"
         />
       </div>
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? "Signing in..." : "Sign in"}
+        {isLoading ? "Signing in…" : "Sign in"}
       </Button>
     </form>
   );

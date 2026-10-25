@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { registerAction } from "./actions";
 
@@ -58,49 +59,51 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="username">Username</label>
-        <input
+        <label className="text-sm font-semibold" htmlFor="username">Username</label>
+        <Input
           id="username"
           name="username"
+          autoComplete="username"
+          spellCheck={false}
           type="text"
           minLength={3}
           required
           disabled={isLoading}
-          className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary disabled:opacity-50"
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="email">Email (optional)</label>
-        <input
+        <label className="text-sm font-semibold" htmlFor="email">Email (optional)</label>
+        <Input
           id="email"
           name="email"
+          autoComplete="email"
+          spellCheck={false}
           type="email"
           disabled={isLoading}
-          className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary disabled:opacity-50"
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="password">Password</label>
-        <input
+        <label className="text-sm font-semibold" htmlFor="password">Password</label>
+        <Input
           id="password"
           name="password"
+          autoComplete="new-password"
           type="password"
           minLength={8}
           required
           disabled={isLoading}
-          className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary disabled:opacity-50"
         />
       </div>
       <div className="space-y-2">
-        <label className="text-sm font-medium" htmlFor="confirmPassword">Confirm password</label>
-        <input
+        <label className="text-sm font-semibold" htmlFor="confirmPassword">Confirm password</label>
+        <Input
           id="confirmPassword"
           name="confirmPassword"
+          autoComplete="new-password"
           type="password"
           minLength={8}
           required
           disabled={isLoading}
-          className="h-11 w-full rounded-xl border border-border/70 bg-background px-3 outline-none ring-0 focus:border-primary disabled:opacity-50"
         />
       </div>
       <Button 
