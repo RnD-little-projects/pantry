@@ -2,24 +2,24 @@ import Link from "next/link";
 
 export default function UnauthorizedPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md rounded-3xl border border-border/70 bg-card p-8 text-center shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-[0.4em] text-muted-foreground">Access denied</p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight">This page is not public shared.</h1>
-        <p className="mt-3 text-sm text-muted-foreground">You need the correct access or a public share link to view this order session.</p>
-        
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4">
+      <div className="w-full max-w-md rounded-sheet border border-border bg-card p-8 text-center">
+        <span aria-hidden="true" className="sticker sticker-empty text-lg">Private</span>
+        <h1 className="font-display mt-6 text-2xl text-balance">This list isn’t shared</h1>
+        <p className="mt-3 text-sm text-muted-foreground">Ask the owner to make it public, or sign in with the account that made it.</p>
+
         <div className="mt-8 flex flex-col gap-3">
           <Link
             href="/"
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_12px_30px_-14px_rgba(45,212,191,0.75)] transition-all duration-200 hover:brightness-110 focus-visible:outline-none focus-visible:ring-2"
+            className="inline-flex h-11 items-center justify-center rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            Back to Home
+            Go to my lists
           </Link>
           <Link
             href="/market-list"
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-border/80 bg-transparent px-4 py-2.5 text-sm font-medium text-foreground transition-all duration-200 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2"
+            className="inline-flex h-11 items-center justify-center rounded-control border border-input bg-card px-4 text-sm font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            View Market Items
+            See market prices
           </Link>
         </div>
       </div>
