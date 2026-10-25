@@ -5,7 +5,6 @@ import { PantryLayout } from "@/components/pantry-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { startOrderAction } from "./new-order-action";
 import Link from "next/link";
 import { Package, ShoppingCart } from "lucide-react";
@@ -29,54 +28,35 @@ export default async function Home() {
 
     return (
       <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={userRole} user={session.user as any}>
-        <div className="space-y-6">
-          <div>
-            <h1 className="font-display text-2xl sm:text-3xl">Today at the counter</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Price waiting items first, then check orders.</p>
-          </div>
-
-          {/* Waiting-for-price gets the sticker: it's the cashier's to-do */}
-          <section aria-label="Market items" className="rounded-sheet border border-border bg-card">
-            <Link href="/admin/products" className="flex items-center justify-between gap-4 rounded-t-sheet p-5 transition-colors hover:bg-muted/50">
-              <div>
-                <p className="font-semibold">Waiting for a price</p>
-                <p className="text-sm text-muted-foreground">Set prices in Products</p>
+        <div className="mx-auto w-full max-w-xl space-y-6">
+          <section aria-label="Counter report" className="receipt px-6 pb-6 pt-6 sm:px-8">
+            <header className="pb-4 text-center">
+              <h1 className="text-lg font-bold uppercase tracking-wide">Counter report</h1>
+              <p className="mt-1 text-xs text-muted-foreground">Price the waiting items first, then check orders.</p>
+            </header>
+            <dl className="receipt-rule text-[15px]">
+              <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-3">
+                <dt className="font-semibold">Waiting for a price</dt>
+                <dd>{metrics.pending > 0 ? <span className="stamp text-sm">{metrics.pending} to price</span> : "0"}</dd>
               </div>
-              <span className={metrics.pending > 0 ? "sticker text-2xl" : "sticker sticker-empty text-2xl"}>{metrics.pending}</span>
-            </Link>
-            <dl className="grid grid-cols-2 divide-x divide-border border-t border-border">
-              <div className="p-5">
-                <dt className="text-sm text-muted-foreground">Priced</dt>
-                <dd className="font-display mt-1 text-2xl text-success">{metrics.valuated}</dd>
+              <div className="flex items-center justify-between gap-4 border-b border-dotted border-border py-3">
+                <dt>Priced</dt>
+                <dd className="font-bold">{metrics.valuated}</dd>
               </div>
-              <div className="p-5">
-                <dt className="text-sm text-muted-foreground">All market items</dt>
-                <dd className="font-display mt-1 text-2xl">{metrics.total}</dd>
+              <div className="flex items-center justify-between gap-4 py-3">
+                <dt>All market items</dt>
+                <dd className="font-bold">{metrics.total}</dd>
               </div>
             </dl>
+            <div className="receipt-rule grid gap-3 pt-5 font-sans sm:grid-cols-2">
+              <Link href="/admin/products" className="inline-flex h-12 items-center justify-center gap-2 rounded-control bg-primary px-4 text-[15px] font-bold text-primary-foreground transition-colors hover:bg-primary/90">
+                <Package aria-hidden="true" size={18} /> Set prices
+              </Link>
+              <Link href="/admin/orders" className="inline-flex h-12 items-center justify-center gap-2 rounded-control border border-current px-4 text-[15px] font-bold transition-colors hover:bg-foreground/5">
+                <ShoppingCart aria-hidden="true" size={18} /> See orders
+              </Link>
+            </div>
           </section>
-
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Link href="/admin/products" className="group flex items-center gap-4 rounded-sheet border border-border bg-card p-5 transition-colors hover:border-primary">
-              <span className="rounded-control bg-accent p-3 text-accent-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <Package aria-hidden="true" size={22} />
-              </span>
-              <span>
-                <span className="block font-semibold">Products</span>
-                <span className="block text-sm text-muted-foreground">Add items and set prices</span>
-              </span>
-            </Link>
-
-            <Link href="/admin/orders" className="group flex items-center gap-4 rounded-sheet border border-border bg-card p-5 transition-colors hover:border-primary">
-              <span className="rounded-control bg-accent p-3 text-accent-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <ShoppingCart aria-hidden="true" size={22} />
-              </span>
-              <span>
-                <span className="block font-semibold">Orders</span>
-                <span className="block text-sm text-muted-foreground">See every customer’s list</span>
-              </span>
-            </Link>
-          </div>
         </div>
       </PantryLayout>
     );
@@ -96,20 +76,19 @@ export default async function Home() {
 
   return (
     <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
-      <div className="mx-auto w-full max-w-xl space-y-6 pt-2 sm:pt-10">
-        <div>
-          <h1 className="font-display text-3xl text-balance sm:text-4xl">What do you need today?</h1>
-          <p className="mt-2 text-muted-foreground">Add the first item and your list starts. Keep adding from there.</p>
-        </div>
-
-        <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)} className="space-y-4 rounded-sheet border border-border bg-card p-5">
-          <div className="grid grid-cols-[1fr_5.5rem] gap-3">
+      <div className="mx-auto w-full max-w-xl pt-2 sm:pt-8">
+        <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)} className="receipt px-6 pb-6 pt-6 sm:px-8">
+          <header className="pb-4 text-center">
+            <h1 className="text-lg font-bold uppercase tracking-wide">New list</h1>
+            <p className="mt-1 text-xs text-muted-foreground">Write the first item and your list starts. Keep adding from there.</p>
+          </header>
+          <div className="receipt-rule grid grid-cols-[1fr_5rem] gap-3 pt-5">
             <div className="space-y-1.5">
               <Label htmlFor="start-item">Item</Label>
               <Input
                 id="start-item"
                 name="itemName"
-                placeholder="Milk, eggs, rice…"
+                placeholder="milk, eggs, rice…"
                 list="market-item-names"
                 autoComplete="off"
                 required
@@ -121,7 +100,7 @@ export default async function Home() {
               </datalist>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="start-qty">Quantity</Label>
+              <Label htmlFor="start-qty">Qty</Label>
               <Input
                 id="start-qty"
                 name="quantity"
@@ -134,9 +113,11 @@ export default async function Home() {
               />
             </div>
           </div>
-          <Button type="submit" size="lg" className="w-full">
-            Start my list
-          </Button>
+          <div className="receipt-rule mt-5 pt-5">
+            <Button type="submit" size="lg" className="w-full">
+              Start my list
+            </Button>
+          </div>
         </form>
       </div>
     </PantryLayout>
