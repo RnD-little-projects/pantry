@@ -70,29 +70,29 @@ const ACTION_CATEGORIES = [
 
 const ACTION_COLOR_MAP: Record<string, string> = {
   // User Management
-  user_create: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  user_update: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  user_delete: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  user_reset_password: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  user_create: "bg-success/12 text-success border-success/25",
+  user_update: "bg-accent text-accent-foreground border-transparent",
+  user_delete: "bg-destructive/10 text-destructive border-destructive/25",
+  user_reset_password: "bg-highlight/25 text-foreground border-highlight/40",
 
   // Product & Category Management
-  product_create: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  product_update: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  product_delete: "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20",
-  product_merge: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
-  category_upsert: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
-  price_adjust: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  alias_add: "bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20",
+  product_create: "bg-success/12 text-success border-success/25",
+  product_update: "bg-accent text-accent-foreground border-transparent",
+  product_delete: "bg-destructive/10 text-destructive border-destructive/25",
+  product_merge: "bg-accent text-accent-foreground border-transparent",
+  category_upsert: "bg-accent text-accent-foreground border-transparent",
+  price_adjust: "bg-highlight/25 text-foreground border-highlight/40",
+  alias_add: "bg-accent text-accent-foreground border-transparent",
 
   // Order Transactions
-  item_add: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-  quantity_update: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-  item_remove: "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
-  item_undo_remove: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-  order_archive: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
-  finalize: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  pay: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  share: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  item_add: "bg-success/12 text-success border-success/25",
+  quantity_update: "bg-accent text-accent-foreground border-transparent",
+  item_remove: "bg-destructive/10 text-destructive border-destructive/25",
+  item_undo_remove: "bg-accent text-accent-foreground border-transparent",
+  order_archive: "bg-muted text-muted-foreground border-transparent",
+  finalize: "bg-success/12 text-success border-success/25",
+  pay: "bg-success/12 text-success border-success/25",
+  share: "bg-accent text-accent-foreground border-transparent",
 };
 
 export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Readonly<AuditLogsClientProps>) {
@@ -202,24 +202,24 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
     <div className="space-y-6 pb-12">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">System Audit Logs</h1>
+        <h1 className="font-display text-2xl sm:text-3xl">Audit log</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Continuous scroll tracking of all administrative, user, product, and order transactions across the platform.
         </p>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="relative z-30 rounded-2xl border border-border/60 bg-card/50 backdrop-blur-md p-5 shadow-sm space-y-4">
+      <div className="relative z-30 rounded-sheet border border-border bg-card p-5 space-y-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           {/* Search Input */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
             <input
               type="text"
-              placeholder="Search by action, note, user, or target ID..."
+              placeholder="Search by action, note, user or ID…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-border/60 bg-background pl-10 pr-4 py-2 text-sm text-foreground outline-none focus:border-primary transition-colors"
+              className="w-full rounded-control border border-border bg-background pl-10 pr-4 py-2 text-sm text-foreground outline-none focus:border-primary transition-colors"
             />
             {searchQuery && (
               <button
@@ -247,7 +247,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
         </div>
 
         {/* Multi-Select Dropdowns & Category Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-wrap pt-2 border-t border-border/40">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center flex-wrap pt-2 border-t border-border">
           {/* Filter by Actor */}
           <div className="relative">
             <Button
@@ -257,7 +257,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                 setShowUserDropdown(!showUserDropdown);
                 setShowActionDropdown(false);
               }}
-              className={cn("rounded-xl border-border/60 gap-2 font-normal", selectedUsers.length > 0 && "border-primary bg-primary/5 text-primary font-medium")}
+              className={cn("rounded-control border-border gap-2 font-normal", selectedUsers.length > 0 && "border-primary bg-primary/5 text-primary font-medium")}
             >
               <User size={15} />
               <span>Filter by Actor {selectedUsers.length > 0 && `(${selectedUsers.length})`}</span>
@@ -265,8 +265,8 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
             </Button>
 
             {showUserDropdown && (
-              <div className="absolute left-0 top-full mt-2 w-72 rounded-xl border border-border/80 bg-popover p-2 shadow-xl z-50 max-h-64 overflow-y-auto">
-                <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <div className="absolute left-0 top-full mt-2 w-72 rounded-control border border-border bg-popover p-2 z-50 max-h-64 overflow-y-auto">
+                <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground">
                   Select Users
                 </div>
                 {auditUsers.length === 0 ? (
@@ -285,7 +285,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                       >
                         <div>
                           <div className="font-medium">{u.username}</div>
-                          {u.email && <div className="text-[10px] text-muted-foreground">{u.email}</div>}
+                          {u.email && <div className="text-xs text-muted-foreground">{u.email}</div>}
                         </div>
                         {isSelected && <Check size={14} />}
                       </button>
@@ -305,7 +305,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                 setShowActionDropdown(!showActionDropdown);
                 setShowUserDropdown(false);
               }}
-              className={cn("rounded-xl border-border/60 gap-2 font-normal", selectedActions.length > 0 && "border-primary bg-primary/5 text-primary font-medium")}
+              className={cn("rounded-control border-border gap-2 font-normal", selectedActions.length > 0 && "border-primary bg-primary/5 text-primary font-medium")}
             >
               <Filter size={15} />
               <span>Filter by Action {selectedActions.length > 0 && `(${selectedActions.length})`}</span>
@@ -313,10 +313,10 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
             </Button>
 
             {showActionDropdown && (
-              <div className="absolute left-0 top-full mt-2 w-80 rounded-xl border border-border/80 bg-popover p-2 shadow-xl z-50 max-h-80 overflow-y-auto space-y-3">
+              <div className="absolute left-0 top-full mt-2 w-80 rounded-control border border-border bg-popover p-2 z-50 max-h-80 overflow-y-auto space-y-3">
                 {ACTION_CATEGORIES.map((cat) => (
                   <div key={cat.category} className="space-y-1">
-                    <div className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-muted/50 rounded">
+                    <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground bg-muted/50 rounded">
                       {cat.category}
                     </div>
                     {cat.actions.map((act) => {
@@ -367,11 +367,11 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
       </div>
 
       {/* Results Table / Feed */}
-      <div className="relative z-10 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+      <div className="relative z-10 overflow-hidden rounded-sheet border border-border bg-card">
         {fetchingFilters ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-4">
             <Loader2 size={32} className="animate-spin text-primary mb-3" />
-            <h3 className="text-base font-semibold">Filtering audit logs...</h3>
+            <h3 className="text-base font-semibold">Filtering audit logs…</h3>
           </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center px-4">
@@ -383,7 +383,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
               No transactions match your current search and filter criteria. Try clearing your filters or adjusting your search query.
             </p>
             {(selectedUsers.length > 0 || selectedActions.length > 0 || searchQuery) && (
-              <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4 rounded-xl">
+              <Button variant="outline" size="sm" onClick={clearFilters} className="mt-4 rounded-control">
                 Clear all filters
               </Button>
             )}
@@ -392,7 +392,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
           <div className="w-full overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/50 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border bg-muted/50 text-xs font-semibold text-muted-foreground">
                   <th className="py-3.5 pl-6 pr-4">Timestamp</th>
                   <th className="py-3.5 px-4">Actor</th>
                   <th className="py-3.5 px-4">Target</th>
@@ -400,7 +400,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                   <th className="py-3.5 pl-4 pr-6">Transaction Details & Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/60 bg-card/50 backdrop-blur-sm">
+              <tbody className="divide-y divide-border/60 bg-card">
                 {logs.map((log) => {
                   const dateObj = new Date(log.createdAt);
                   const dateStr = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -424,7 +424,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                         {log.actorId ? (
                           <div>
                             <div className="font-semibold text-xs text-foreground flex items-center gap-1.5">
-                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary uppercase">
+                              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary uppercase">
                                 {log.actorId.username.charAt(0)}
                               </span>
                               <span>{log.actorId.username}</span>
@@ -440,7 +440,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
 
                       {/* Target */}
                       <td className="py-4 px-4 whitespace-nowrap align-top">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <div className="text-xs font-semibold text-muted-foreground">
                           {log.targetType}
                         </div>
                         <div className="text-xs font-mono text-foreground mt-0.5 truncate max-w-[150px]" title={log.targetId}>
@@ -450,7 +450,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
 
                       {/* Action */}
                       <td className="py-4 px-4 whitespace-nowrap align-top">
-                        <span className={cn("inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-2xs", actionColor)}>
+                        <span className={cn("inline-flex items-center rounded-lg border px-2.5 py-1 text-xs font-semibold", actionColor)}>
                           {getActionLabel(log.action)}
                         </span>
                       </td>
@@ -459,10 +459,10 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                       <td className="py-4 pl-4 pr-6 align-top min-w-[280px]">
                         <div className="text-xs text-foreground font-medium">{log.note || "No notes provided."}</div>
                         {(log.before || log.after) && (
-                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-background/50 rounded-xl p-2.5 border border-border/40 text-[11px] font-mono overflow-x-auto">
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 bg-background/50 rounded-control p-2.5 border border-border text-[11px] font-mono overflow-x-auto">
                             {log.before && (
-                              <div className="space-y-1 pr-2 border-b sm:border-b-0 sm:border-r border-border/40 pb-2 sm:pb-0">
-                                <div className="font-bold text-red-500/80 uppercase tracking-wider text-[9px]">Before Change:</div>
+                              <div className="space-y-1 pr-2 border-b sm:border-b-0 sm:border-r border-border pb-2 sm:pb-0">
+                                <div className="text-xs font-semibold text-destructive">Before</div>
                                 <pre className="text-muted-foreground whitespace-pre-wrap overflow-x-auto">
                                   {JSON.stringify(log.before, null, 2)}
                                 </pre>
@@ -470,7 +470,7 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
                             )}
                             {log.after && (
                               <div className="space-y-1 pl-1">
-                                <div className="font-bold text-emerald-500/80 uppercase tracking-wider text-[9px]">After Change:</div>
+                                <div className="text-xs font-semibold text-success">After</div>
                                 <pre className="text-muted-foreground whitespace-pre-wrap overflow-x-auto">
                                   {JSON.stringify(log.after, null, 2)}
                                 </pre>
@@ -489,16 +489,16 @@ export function AuditLogsClient({ initialLogs, initialHasMore, auditUsers }: Rea
 
         {/* Infinite Scroll Sentinel / Loading Indicator */}
         {hasMore && (
-          <div id="audit-scroll-sentinel" className="flex items-center justify-center py-8 bg-card/30">
+          <div id="audit-scroll-sentinel" className="flex items-center justify-center py-8 bg-card">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <span>Loading more audit logs...</span>
+              <span>Loading more audit logs…</span>
             </div>
           </div>
         )}
 
         {!hasMore && logs.length > 0 && (
-          <div className="py-8 text-center text-xs text-muted-foreground bg-card/30 border-t border-border/40">
+          <div className="py-8 text-center text-xs text-muted-foreground bg-card border-t border-border">
             You have reached the end of the audit log history.
           </div>
         )}
