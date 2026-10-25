@@ -20,18 +20,23 @@ export async function POST(req: Request) {
   const publicId = String(body.publicId ?? "").trim();
   const quantityLabel = String(body.quantityLabel ?? "").trim();
   const itemIndex = Number(body.itemIndex ?? -1);
+  const itemName = String(body.itemName ?? "");
 
   if (!publicId || itemIndex < 0 || Number.isNaN(itemIndex)) {
     return NextResponse.json({ error: "Invalid update payload" }, { status: 400 });
   }
 
   try {
-    const item = await updateOrderItemQuantity(publicId, (session.user as Record<string, unknown>).id as string, itemIndex, quantityLabel);
+    const item = await updateOrderItemQuantity(publicId, (session.user as Record<string, unknown>).id as string, itemIndex, itemName, quantityLabel);
     return NextResponse.json({ item });
   } catch (error) {
     const code = (error as Record<string, unknown>)?.code;
     if (code === "QUANTITY_LABEL_TOO_SHORT") {
       return NextResponse.json({ error: (error as Error).message }, { status: 400 });
+    }
+
+    if (code === "ORDER_LOCKED" || code === "ITEM_CHANGED") {
+      return NextResponse.json({ error: (error as Error).message }, { status: 409 });
     }
 
     if (code === "FORBIDDEN") {

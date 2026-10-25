@@ -6,6 +6,9 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { revalidatePath } from "next/cache";
 
+const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
+const RECEIPT_TYPES: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" };
+
 export async function POST(req: Request) {
   try {
     const session = await auth();
@@ -36,6 +39,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Archiving again would re-price a paid order at today's prices
+    if (order.status === "archived") {
+      return NextResponse.json({ error: "Order is already archived" }, { status: 409 });
+    }
+
+    if (receiptUrl && !receiptUrl.startsWith("https://")) {
+      return NextResponse.json({ error: "Receipt link must start with https://" }, { status: 400 });
+    }
+
+    if (receiptFile && (!RECEIPT_TYPES[receiptFile.type] || receiptFile.size > MAX_RECEIPT_BYTES)) {
+      return NextResponse.json({ error: "Receipt must be a PNG, JPEG, GIF or WebP image under 10 MB" }, { status: 400 });
+    }
+
     let finalReceiptUrl = receiptUrl || null;
 
     // Handle file upload
@@ -43,8 +59,8 @@ export async function POST(req: Request) {
       const bytes = await receiptFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
 
-      // Create a unique filename
-      const ext = receiptFile.name.split(".").pop() || "jpg";
+      // Extension comes from the checked type, never from the user's filename
+      const ext = RECEIPT_TYPES[receiptFile.type];
       const filename = `receipt-${publicId}-${Date.now()}.${ext}`;
       const dir = join(process.cwd(), "storage", "receipts");
       const path = join(dir, filename);

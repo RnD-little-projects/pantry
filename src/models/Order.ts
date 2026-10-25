@@ -49,6 +49,12 @@ const orderSchema = new Schema(
   { timestamps: true },
 );
 
+// One open list per user, enforced by the database so a double submit can't make two
+orderSchema.index(
+  { authorId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: "draft" }, name: "one_open_order_per_user" },
+);
+
 export type OrderDocument = InferSchemaType<typeof orderSchema> & {
   authorId: Types.ObjectId;
 };

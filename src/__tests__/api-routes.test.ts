@@ -18,7 +18,6 @@ vi.mock("fs/promises", () => ({ default: m.fsp, ...m.fsp }));
 vi.mock("fs", () => ({ default: m.fs, ...m.fs }));
 
 import { POST as addItem } from "../app/api/order-list/add-item/route";
-import { POST as addItemById } from "../app/api/order-list/[publicId]/add-item/route";
 import { POST as removeItem } from "../app/api/order-list/remove-item/route";
 import { POST as undoItem } from "../app/api/order-list/undo-item/route";
 import { POST as updateItem } from "../app/api/order-list/update-item/route";
@@ -76,36 +75,6 @@ describe("POST /api/order-list/add-item", () => {
   });
 });
 
-describe("POST /api/order-list/[publicId]/add-item", () => {
-  const ctx = { params: Promise.resolve({ publicId: "p" }) };
-
-  it("requires auth and a valid payload", async () => {
-    m.auth.mockResolvedValueOnce(null);
-    await expectStatus(await addItemById(json({}), ctx), 401);
-    signedIn();
-    await expectStatus(await addItemById(badJson(), ctx), 400);
-  });
-
-  it("adds using the route param", async () => {
-    signedIn();
-    m.db.appendOrderItem.mockResolvedValueOnce({ id: "i1" });
-    await expectStatus(await addItemById(json({ itemName: "Rice", quantityLabel: "1" }), ctx), 200);
-    expect(m.db.appendOrderItem).toHaveBeenCalledWith("p", "u1", "Rice", "1");
-  });
-
-  it("maps errors", async () => {
-    signedIn();
-    m.db.appendOrderItem.mockRejectedValueOnce(coded("q", "QUANTITY_LABEL_TOO_SHORT"));
-    await expectStatus(await addItemById(json({}), ctx), 400);
-    m.db.appendOrderItem.mockRejectedValueOnce(coded("f", "FORBIDDEN"));
-    await expectStatus(await addItemById(json({}), ctx), 403);
-    m.db.appendOrderItem.mockRejectedValueOnce(coded("ORDER_NOT_FOUND"));
-    await expectStatus(await addItemById(json({}), ctx), 404);
-    m.db.appendOrderItem.mockRejectedValueOnce(coded("x"));
-    await expectStatus(await addItemById(json({}), ctx), 500, { error: "Unable to add item" });
-  });
-});
-
 describe("POST /api/order-list/remove-item", () => {
   it("handles auth and payload errors", async () => {
     m.auth.mockRejectedValueOnce(new Error("x"));
@@ -119,12 +88,18 @@ describe("POST /api/order-list/remove-item", () => {
 
   it("removes and maps errors", async () => {
     signedIn();
-    await expectStatus(await removeItem(json({ publicId: "p", itemIndex: 0 })), 200, { success: true });
-    expect(m.db.removeOrderItem).toHaveBeenCalledWith("p", "u1", 0);
+    const body = { publicId: "p", itemIndex: 0, itemName: "Rice" };
+    await expectStatus(await removeItem(json({ publicId: "p", itemIndex: 0 })), 400, { error: "Missing required fields" });
+    await expectStatus(await removeItem(json(body)), 200, { success: true });
+    expect(m.db.removeOrderItem).toHaveBeenCalledWith("p", "u1", 0, "Rice");
     m.db.removeOrderItem.mockRejectedValueOnce(coded("Forbidden", "FORBIDDEN"));
-    await expectStatus(await removeItem(json({ publicId: "p", itemIndex: 0 })), 403);
+    await expectStatus(await removeItem(json(body)), 403);
+    m.db.removeOrderItem.mockRejectedValueOnce(coded("This list changed. Refresh and try again.", "ITEM_CHANGED"));
+    await expectStatus(await removeItem(json(body)), 409);
+    m.db.removeOrderItem.mockRejectedValueOnce(coded("locked", "ORDER_LOCKED"));
+    await expectStatus(await removeItem(json(body)), 409);
     m.db.removeOrderItem.mockRejectedValueOnce(coded("ITEM_NOT_FOUND"));
-    await expectStatus(await removeItem(json({ publicId: "p", itemIndex: 0 })), 500, { error: "ITEM_NOT_FOUND" });
+    await expectStatus(await removeItem(json(body)), 500, { error: "ITEM_NOT_FOUND" });
   });
 });
 
@@ -143,6 +118,8 @@ describe("POST /api/order-list/undo-item", () => {
     signedIn();
     await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 200, { success: true });
     expect(m.db.undoRemoveOrderItem).toHaveBeenCalledWith("p", "u1", "l");
+    m.db.undoRemoveOrderItem.mockRejectedValueOnce(new Error("ALREADY_UNDONE"));
+    await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 409, { error: "ALREADY_UNDONE" });
     m.db.undoRemoveOrderItem.mockRejectedValueOnce(new Error("INVALID_AUDIT_LOG"));
     await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 500, { error: "INVALID_AUDIT_LOG" });
   });
@@ -160,10 +137,12 @@ describe("POST /api/order-list/update-item", () => {
 
   it("updates and maps errors", async () => {
     signedIn();
-    const body = { publicId: "p", itemIndex: 1, quantityLabel: "3" };
+    const body = { publicId: "p", itemIndex: 1, itemName: "Rice", quantityLabel: "3" };
     m.db.updateOrderItemQuantity.mockResolvedValueOnce({ id: "i" });
     await expectStatus(await updateItem(json(body)), 200, { item: { id: "i" } });
-    expect(m.db.updateOrderItemQuantity).toHaveBeenCalledWith("p", "u1", 1, "3");
+    expect(m.db.updateOrderItemQuantity).toHaveBeenCalledWith("p", "u1", 1, "Rice", "3");
+    m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("changed", "ITEM_CHANGED"));
+    await expectStatus(await updateItem(json(body)), 409);
     m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("q", "QUANTITY_LABEL_TOO_SHORT"));
     await expectStatus(await updateItem(json(body)), 400);
     m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("f", "FORBIDDEN"));
@@ -191,6 +170,28 @@ describe("POST /api/order-list/archive", () => {
     await expectStatus(await archive(archiveReq({ publicId: "p" })), 404);
     m.Order.findOne.mockReturnValueOnce({ populate: () => Promise.resolve({ authorId: "other" }) });
     await expectStatus(await archive(archiveReq({ publicId: "p" })), 403);
+  });
+
+  it("refuses to archive twice, so paid prices stay frozen", async () => {
+    signedIn();
+    const order = { authorId: "u1", status: "archived", items: [{ productId: { price: 99 }, unitPrice: 10, quantity: 1 }], save: vi.fn() };
+    m.Order.findOne.mockReturnValueOnce({ populate: () => Promise.resolve(order) });
+    await expectStatus(await archive(archiveReq({ publicId: "p" })), 409);
+    expect(order.items[0].unitPrice).toBe(10);
+    expect(order.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects receipts that are not images, too big, or non-https links", async () => {
+    signedIn();
+    const order = () => ({ authorId: "u1", items: [], save: vi.fn() });
+    m.Order.findOne.mockReturnValueOnce({ populate: () => Promise.resolve(order()) });
+    await expectStatus(await archive(archiveReq({ publicId: "p", receipt: new File(["<html>"], "r.html", { type: "text/html" }) })), 400);
+    m.Order.findOne.mockReturnValueOnce({ populate: () => Promise.resolve(order()) });
+    const big = new File([new Uint8Array(10 * 1024 * 1024 + 1)], "r.png", { type: "image/png" });
+    await expectStatus(await archive(archiveReq({ publicId: "p", receipt: big })), 400);
+    m.Order.findOne.mockReturnValueOnce({ populate: () => Promise.resolve(order()) });
+    await expectStatus(await archive(archiveReq({ publicId: "p", receiptUrl: "http://tracker.example/x.png" })), 400);
+    expect(m.fsp.writeFile).not.toHaveBeenCalled();
   });
 
   it("freezes prices, totals the order, stores the receipt and logs", async () => {
@@ -245,13 +246,12 @@ describe("GET /api/qr-codes", () => {
     await expectStatus(await qrCodes(), 200, { images: ["a.png", "c.SVG"] });
   });
 
-  it("creates the folder and a default QR when empty", async () => {
+  it("returns no images, and writes nothing, when the folder is missing", async () => {
     signedIn();
     m.fs.existsSync.mockReturnValueOnce(false);
-    m.fs.readdirSync.mockReturnValueOnce([]);
-    await expectStatus(await qrCodes(), 200, { images: ["default-qr.svg"] });
-    expect(m.fs.mkdirSync).toHaveBeenCalled();
-    expect(m.fs.writeFileSync).toHaveBeenCalled();
+    await expectStatus(await qrCodes(), 200, { images: [] });
+    expect(m.fs.mkdirSync).not.toHaveBeenCalled();
+    expect(m.fs.writeFileSync).not.toHaveBeenCalled();
   });
 
   it("returns 500 when the folder can't be read", async () => {
@@ -277,16 +277,28 @@ describe("GET /api/receipts/[filename]", () => {
     expect(m.fsp.readFile).not.toHaveBeenCalled();
   });
 
-  it("serves the file with a content type", async () => {
-    signedIn();
+  it("serves the file with a content type to staff", async () => {
+    m.auth.mockResolvedValue({ user: { id: "c1", role: "cashier" } });
     m.fsp.readFile.mockResolvedValue(Buffer.from("img"));
     expect((await get("a.png")).headers.get("Content-Type")).toBe("image/png");
     expect((await get("a.gif")).headers.get("Content-Type")).toBe("image/gif");
+    expect((await get("a.webp")).headers.get("Content-Type")).toBe("image/webp");
     expect((await get("a.jpg")).headers.get("Content-Type")).toBe("image/jpeg");
   });
 
-  it("returns 404 for a missing file", async () => {
+  it("serves a receipt to the order's owner and hides it from other users", async () => {
     signedIn();
+    m.fsp.readFile.mockResolvedValue(Buffer.from("img"));
+    m.Order.findOne.mockReturnValueOnce({ lean: () => Promise.resolve({ authorId: "u1" }) });
+    await expectStatus(await get("receipt-ab-c_1-1700000000000.png"), 200);
+    expect(m.Order.findOne.mock.calls[0][0]).toEqual({ publicId: "ab-c_1" });
+    m.Order.findOne.mockReturnValueOnce({ lean: () => Promise.resolve({ authorId: "someone-else" }) });
+    await expectStatus(await get("receipt-ab-c_1-1700000000000.png"), 404);
+    await expectStatus(await get("not-a-receipt.png"), 404);
+  });
+
+  it("returns 404 for a missing file", async () => {
+    m.auth.mockResolvedValue({ user: { id: "a1", role: "admin" } });
     m.fsp.readFile.mockRejectedValueOnce(new Error("ENOENT"));
     await expectStatus(await get("a.png"), 404);
   });

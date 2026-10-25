@@ -114,7 +114,7 @@ export default async function SessionPage({ params }: Readonly<SessionPageProps>
                   <span className="order-4 flex items-center justify-end gap-1 @xl:order-none">
                     {canEdit && (
                       <>
-                        <EditableQuantityCell publicId={publicId} itemIndex={index} quantityLabel={entry.quantityLabel} isCreator={canEdit} variant="inline" />
+                        <EditableQuantityCell publicId={publicId} itemIndex={index} itemName={entry.itemName} quantityLabel={entry.quantityLabel} isCreator={canEdit} variant="inline" />
                         <DeleteItemButton publicId={publicId} itemIndex={index} itemName={entry.itemName} />
                       </>
                     )}

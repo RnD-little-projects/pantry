@@ -8,13 +8,14 @@ import { Minus, Plus } from "lucide-react";
 type EditableQuantityCellProps = {
   publicId: string;
   itemIndex: number;
+  itemName: string;
   quantityLabel: string;
   isCreator: boolean;
   /** "cell" renders a <td>, "inline" renders a <div>. Default: "cell" */
   variant?: "cell" | "inline";
 };
 
-export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCreator, variant = "cell" }: EditableQuantityCellProps) {
+export function EditableQuantityCell({ publicId, itemIndex, itemName, quantityLabel, isCreator, variant = "cell" }: EditableQuantityCellProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [value, setValue] = useState(quantityLabel);
@@ -45,7 +46,7 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ publicId, itemIndex, quantityLabel: cleaned }),
+        body: JSON.stringify({ publicId, itemIndex, itemName, quantityLabel: cleaned }),
       });
 
       if (!response.ok) {

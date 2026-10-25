@@ -30,7 +30,7 @@ export function DeleteItemButton({ publicId, itemIndex, itemName = "this item" }
       const response = await fetch("/api/order-list/remove-item", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ publicId, itemIndex }),
+        body: JSON.stringify({ publicId, itemIndex, itemName }),
       });
 
       if (!response.ok) {

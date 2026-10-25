@@ -42,6 +42,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: (error as Error).message }, { status: 400 });
     }
 
+    if (code === "ORDER_LOCKED" || code === "ITEM_CHANGED") {
+      return NextResponse.json({ error: (error as Error).message }, { status: 409 });
+    }
+
     if (code === "FORBIDDEN") {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }

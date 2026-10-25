@@ -32,6 +32,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Undo-item route error:", error);
+    const message = (error as Error).message;
+    if (message === "ORDER_LOCKED" || message === "ALREADY_UNDONE") {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
     return NextResponse.json({ error: (error as Error).message || "Unable to undo action" }, { status: 500 });
   }
 }

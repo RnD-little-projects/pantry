@@ -1,8 +1,8 @@
 import { AuditLog, Order, Product, User, Category } from "@/models";
-import fs from "fs";
-import path from "path";
+import { randomBytes } from "crypto";
 
 import { connectMongo } from "./db/mongodb";
+import { escapeRegex } from "./utils";
 import type { MarketItem, OrderHistoryEntry, SharedOrderView, WorkspaceSession } from "./pantry-types";
 
 type LeanOrderItem = {
@@ -67,45 +67,30 @@ function formatRelativeDate(value: Date | string | number | null | undefined) {
   return `${days}d ago`;
 }
 
-async function syncBackupToFile(publicId: string, userId: string) {
-  const ready = await canUseMongo();
-  if (!ready) return;
+function codedError(code: string, message = code) {
+  return Object.assign(new Error(message), { code });
+}
 
-  try {
-    const user = await User.findById(userId, { username: 1 }).lean();
-    if (!user) return;
-
-    const order = await Order.findOne({ publicId, authorId: userId }).lean();
-    if (!order) return;
-
-    const username = String(user.username || "unknown").replace(/[^a-z0-9]/gi, "_").toLowerCase();
-    const orderTitle = String(order.title || order.publicId).replace(/[^a-z0-9]/gi, "-").toLowerCase();
-    
-    const inventory: Record<string, number> = {};
-    if (Array.isArray(order.items)) {
-      order.items.forEach((item: any) => {
-        const name = item.itemName || "Unnamed Item";
-        const qty = typeof item.quantity === "number" ? item.quantity : 0;
-        inventory[name] = (inventory[name] || 0) + qty;
-      });
-    }
-
-    const lines = Object.entries(inventory)
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([name, qty]) => `${name}: ${qty}`);
-
-    const content = lines.join("\n");
-    const userDir = path.join(process.cwd(), "storage", username);
-    
-    if (!fs.existsSync(userDir)) {
-      fs.mkdirSync(userDir, { recursive: true });
-    }
-    
-    const filePath = path.join(userDir, `${orderTitle}-${publicId}.txt`);
-    fs.writeFileSync(filePath, content, "utf8");
-  } catch (error) {
-    console.error("Backup failed:", error);
+// Owner-only writes; archived (paid) orders are locked
+function assertCanEdit(order: { authorId?: unknown; status?: string | null }, userId: string) {
+  if (!order.authorId || String(order.authorId) !== String(userId)) {
+    throw codedError("FORBIDDEN", "Forbidden");
   }
+  if (order.status === "archived") {
+    throw codedError("ORDER_LOCKED", "This order is archived and can no longer change");
+  }
+}
+
+// Items are addressed by position; the name the user saw guards against a list that changed in another tab
+function itemAt<T extends { itemName?: string | null }>(order: { items?: T[] }, itemIndex: number, itemName: string): T {
+  const item = Array.isArray(order.items) ? order.items[itemIndex] : undefined;
+  if (!item) {
+    throw codedError("ITEM_NOT_FOUND");
+  }
+  if (item.itemName !== itemName) {
+    throw codedError("ITEM_CHANGED", "This list changed. Refresh and try again.");
+  }
+  return item;
 }
 
 async function canUseMongo() {
@@ -318,11 +303,7 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     throw new Error("ORDER_NOT_FOUND");
   }
 
-  if (!order.authorId || String(order.authorId) !== String(userId)) {
-    const error = new Error("Forbidden");
-    (error as Error & { code?: string }).code = "FORBIDDEN";
-    throw error;
-  }
+  assertCanEdit(order, userId);
 
   const parsedQuantity = parseInt(cleanQuantityLabel, 10);
   const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
@@ -367,11 +348,10 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     status: inserted.status ?? "draft",
   };
 
-  await syncBackupToFile(publicId, userId);
   return result;
 }
 
-export async function updateOrderItemQuantity(publicId: string, userId: string, itemIndex: number, quantityLabel: string) {
+export async function updateOrderItemQuantity(publicId: string, userId: string, itemIndex: number, itemName: string, quantityLabel: string) {
   const ready = await canUseMongo();
   if (!ready) {
     throw new Error("DATABASE_NOT_READY");
@@ -389,19 +369,8 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
     throw new Error("ORDER_NOT_FOUND");
   }
 
-  if (!order.authorId || String(order.authorId) !== String(userId)) {
-    const error = new Error("Forbidden");
-    (error as Error & { code?: string }).code = "FORBIDDEN";
-    throw error;
-  }
-
-  if (!Array.isArray(order.items) || itemIndex < 0 || itemIndex >= order.items.length) {
-    const error = new Error("ITEM_NOT_FOUND");
-    (error as Error & { code?: string }).code = "ITEM_NOT_FOUND";
-    throw error;
-  }
-
-  const item = order.items[itemIndex] as Record<string, unknown>;
+  assertCanEdit(order, userId);
+  const item = itemAt(order, itemIndex, itemName) as Record<string, unknown>;
   const oldQuantityLabel = String(item.quantityLabel ?? "").trim();
   item.quantityLabel = cleanQuantityLabel;
 
@@ -438,30 +407,18 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
     status: item.status ?? "draft",
   };
 
-  await syncBackupToFile(publicId, userId);
   return result;
 }
 
-export async function removeOrderItem(publicId: string, userId: string, itemIndex: number) {
+export async function removeOrderItem(publicId: string, userId: string, itemIndex: number, itemName: string) {
   const ready = await canUseMongo();
   if (!ready) throw new Error("DATABASE_NOT_READY");
 
   const order = await Order.findOne({ publicId });
   if (!order) throw new Error("ORDER_NOT_FOUND");
 
-  if (!order.authorId || String(order.authorId) !== String(userId)) {
-    const error = new Error("Forbidden");
-    (error as Error & { code?: string }).code = "FORBIDDEN";
-    throw error;
-  }
-
-  if (!Array.isArray(order.items) || itemIndex < 0 || itemIndex >= order.items.length) {
-    const error = new Error("ITEM_NOT_FOUND");
-    (error as Error & { code?: string }).code = "ITEM_NOT_FOUND";
-    throw error;
-  }
-
-  const removedItem = order.items[itemIndex];
+  assertCanEdit(order, userId);
+  const removedItem = itemAt(order, itemIndex, itemName) as Record<string, unknown>;
   order.items.splice(itemIndex, 1);
   order.markModified("items");
   await order.save();
@@ -481,7 +438,6 @@ export async function removeOrderItem(publicId: string, userId: string, itemInde
     note: `Removed ${removedItem.itemName}`,
   });
 
-  await syncBackupToFile(publicId, userId);
   return true;
 }
 
@@ -503,8 +459,17 @@ export async function undoRemoveOrderItem(publicId: string, userId: string, audi
   if (!isAdmin && (!order.authorId || String(order.authorId) !== String(userId))) {
     throw new Error("FORBIDDEN");
   }
+  if (order.status === "archived") {
+    throw new Error("ORDER_LOCKED");
+  }
 
-  const { fullItem, index } = auditLog.before as { fullItem: Record<string, unknown>; index: number };
+  // Claim the log entry first so a double tap can't restore the item twice
+  const claimed = await AuditLog.findOneAndDelete({ _id: auditLogId, action: "item_remove" });
+  if (!claimed) {
+    throw new Error("ALREADY_UNDONE");
+  }
+
+  const { fullItem, index } = claimed.before as { fullItem: Record<string, unknown>; index: number };
   
   // Re-insert the item at the original index
   order.items.splice(index, 0, fullItem);
@@ -523,10 +488,6 @@ export async function undoRemoveOrderItem(publicId: string, userId: string, audi
     note: `Undid removal of ${fullItem.itemName}`,
   });
 
-  // Delete the item_remove log to prevent multiple undos
-  await AuditLog.findByIdAndDelete(auditLogId);
-
-  await syncBackupToFile(publicId, userId);
   return true;
 }
 
@@ -583,13 +544,13 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
   const ready = await canUseMongo();
   if (!ready) throw new Error("Database not ready");
 
+  const activeOrderError = "You already have an active order. Please archive it before creating a new one.";
   const existingActiveOrder = await Order.findOne({ authorId: userId, status: { $ne: "archived" } }).lean();
   if (existingActiveOrder) {
-    throw new Error("You already have an active order. Please archive it before creating a new one.");
+    throw new Error(activeOrderError);
   }
 
-  // Generate a simple unique publicId
-  const publicId = Math.random().toString(36).substring(2, 12);
+  const publicId = randomBytes(8).toString("base64url");
   
   const dateStr = new Date().toLocaleDateString("en-US", {
     month: "long",
@@ -621,7 +582,16 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     ],
   });
 
-  await newOrder.save();
+  try {
+    await newOrder.save();
+  } catch (error) {
+    // The one-open-order-per-user index catches a double submit that passed the check above
+    const dup = error as { code?: number; keyPattern?: Record<string, unknown> };
+    if (dup.code === 11000 && dup.keyPattern?.authorId) {
+      throw new Error(activeOrderError);
+    }
+    throw error;
+  }
 
   // Log the first item in history
   await AuditLog.create({
@@ -636,28 +606,26 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     note: `Added ${matchedProduct.name}`,
   });
 
-  await syncBackupToFile(publicId, userId);
   return publicId;
 }
 export async function getAllUsersWithOrderCounts() {
   const ready = await canUseMongo();
   if (!ready) return [];
 
-  const users = await User.find({}, { username: 1, email: 1, avatarUrl: 1, role: 1 }).lean();
-  
-  const userList = await Promise.all(users.map(async (user: Record<string, unknown>) => {
-    const orderCount = await Order.countDocuments({ authorId: user._id });
-    return {
-      id: String(user._id),
-      username: String(user.username ?? ""),
-      email: (user.email as string | null) ?? null,
-      avatarUrl: (user.avatarUrl as string | null) ?? null,
-      role: String(user.role ?? "user"),
-      orderCount
-    };
-  }));
+  const [users, counts] = await Promise.all([
+    User.find({}, { username: 1, email: 1, avatarUrl: 1, role: 1 }).lean(),
+    Order.aggregate<{ _id: unknown; n: number }>([{ $group: { _id: "$authorId", n: { $sum: 1 } } }]),
+  ]);
+  const countByUser = new Map(counts.map((row) => [String(row._id), row.n]));
 
-  return userList;
+  return users.map((user: Record<string, unknown>) => ({
+    id: String(user._id),
+    username: String(user.username ?? ""),
+    email: (user.email as string | null) ?? null,
+    avatarUrl: (user.avatarUrl as string | null) ?? null,
+    role: String(user.role ?? "user"),
+    orderCount: countByUser.get(String(user._id)) ?? 0,
+  }));
 }
 
 export async function getOrdersByUser(userId: string): Promise<WorkspaceSession[]> {
@@ -828,14 +796,6 @@ export async function adminMergeProducts(sourceId: string, targetId: string, adm
   source.active = false;
   await source.save();
 
-  // Refresh backups for all affected orders
-  const affectedOrders = await Order.find({ "items.productId": target._id }).lean();
-  for (const order of affectedOrders) {
-    if (order.publicId && order.authorId) {
-      await syncBackupToFile(order.publicId, String(order.authorId));
-    }
-  }
-
   if (adminUserId) {
     await AuditLog.create({
       actorId: adminUserId,
@@ -871,7 +831,8 @@ export async function adminDeleteProduct(productId: string, adminUserId?: string
   }
 
   // Remove this product from all orders that have it
-  const affectedOrders = await Order.find({ "items.productId": productId });
+  // Paid (archived) orders keep their lines so they still match what was paid
+  const affectedOrders = await Order.find({ "items.productId": productId, status: { $ne: "archived" } });
   for (const order of affectedOrders) {
     const originalItems = order.items || [];
     let modified = false;
@@ -906,9 +867,6 @@ export async function adminDeleteProduct(productId: string, adminUserId?: string
       order.items = remainingItems;
       order.markModified("items");
       await order.save();
-      if (order.publicId && order.authorId) {
-        await syncBackupToFile(order.publicId, String(order.authorId));
-      }
     }
   }
 
@@ -937,7 +895,7 @@ export async function getPaginatedAuditLogs(
   const query: Record<string, any> = {};
 
   if (searchQuery.trim()) {
-    const q = searchQuery.trim();
+    const q = escapeRegex(searchQuery.trim());
     const matchingUsers = await User.find({
       $or: [
         { username: { $regex: q, $options: "i" } },

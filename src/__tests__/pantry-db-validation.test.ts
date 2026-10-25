@@ -62,7 +62,7 @@ describe("pantry-db validation / authorization", () => {
 
   it("updateOrderItemQuantity requires a quantity label", async () => {
     process.env.MONGODB_URI = DUMMY_URI;
-    const err = await updateOrderItemQuantity("pub1", "user1", 0, "  ").catch((e) => e);
+    const err = await updateOrderItemQuantity("pub1", "user1", 0, "Rice", "  ").catch((e) => e);
     expect(err.message).toBe("Quantity label is required");
     expect(err.code).toBe("QUANTITY_LABEL_TOO_SHORT");
   });
@@ -75,7 +75,7 @@ describe("pantry-db validation / authorization", () => {
       markModified: vi.fn(),
       save: vi.fn(),
     });
-    const err = await removeOrderItem("pub1", "user1", 0).catch((e) => e);
+    const err = await removeOrderItem("pub1", "user1", 0, "Rice").catch((e) => e);
     expect(err.message).toBe("ITEM_NOT_FOUND");
   });
 
@@ -87,7 +87,7 @@ describe("pantry-db validation / authorization", () => {
       markModified: vi.fn(),
       save: vi.fn(),
     });
-    const err = await removeOrderItem("pub1", "user1", 0).catch((e) => e);
+    const err = await removeOrderItem("pub1", "user1", 0, "Rice").catch((e) => e);
     expect(err.message).toBe("Forbidden");
     expect(err.code).toBe("FORBIDDEN");
   });

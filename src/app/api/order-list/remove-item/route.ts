@@ -21,18 +21,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 
-  const { publicId, itemIndex } = body;
+  const { publicId, itemIndex, itemName } = body;
 
-  if (!publicId || typeof itemIndex !== "number") {
+  if (!publicId || typeof itemIndex !== "number" || typeof itemName !== "string") {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   try {
-    await removeOrderItem(publicId, (session.user as Record<string, unknown>).id as string, itemIndex);
+    await removeOrderItem(publicId, (session.user as Record<string, unknown>).id as string, itemIndex, itemName);
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Remove-item route error:", error);
     const code = (error as Record<string, unknown>)?.code;
+    if (code === "ORDER_LOCKED" || code === "ITEM_CHANGED") {
+      return NextResponse.json({ error: (error as Error).message }, { status: 409 });
+    }
+
     if (code === "FORBIDDEN") {
       return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
     }
