@@ -98,12 +98,7 @@ export function UserOrderList({ users }: { users: UserWithOrders[] }) {
                       className="flex items-center justify-between px-6 py-4 transition-colors hover:bg-muted/50"
                     >
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">{order.title}</span>
-                          {!order.isPublic && (
-                            <Badge variant="outline" className="text-xs h-4 px-1 text-muted-foreground">Private</Badge>
-                          )}
-                        </div>
+                        <span className="text-sm font-medium text-foreground">{order.title}</span>
                         <div className="text-[11px] text-muted-foreground">
                           {order.items} • Updated {order.updated}
                         </div>

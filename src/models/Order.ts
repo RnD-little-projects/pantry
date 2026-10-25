@@ -40,16 +40,6 @@ const orderSchema = new Schema(
     },
     subtotal: { type: Number, default: 0, min: 0 },
     total: { type: Number, default: 0, min: 0 },
-    sharedWith: {
-      type: [
-        {
-          userId: { type: Schema.Types.ObjectId, ref: "User" },
-          role: { type: String, enum: ["viewer", "cashier", "editor"], default: "viewer" },
-        },
-      ],
-      default: [],
-    },
-    isPublic: { type: Boolean, default: true, index: true },
     finalizedAt: { type: Date, default: null },
     paidAt: { type: Date, default: null },
     archivedAt: { type: Date, default: null },

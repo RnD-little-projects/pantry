@@ -23,7 +23,6 @@ import { POST as removeItem } from "../app/api/order-list/remove-item/route";
 import { POST as undoItem } from "../app/api/order-list/undo-item/route";
 import { POST as updateItem } from "../app/api/order-list/update-item/route";
 import { POST as archive } from "../app/api/order-list/archive/route";
-import { POST as publicOrder } from "../app/api/public-order/route";
 import { GET as qrCodes } from "../app/api/qr-codes/route";
 import { GET as receipt } from "../app/api/receipts/[filename]/route";
 
@@ -230,34 +229,6 @@ describe("POST /api/order-list/archive", () => {
   it("returns 500 on unexpected errors", async () => {
     m.auth.mockRejectedValueOnce(new Error("x"));
     await expectStatus(await archive(archiveReq({})), 500);
-  });
-});
-
-describe("POST /api/public-order", () => {
-  const found = (order: unknown) => m.Order.findOne.mockReturnValueOnce({ lean: () => Promise.resolve(order) });
-
-  it("requires auth and a valid payload", async () => {
-    m.auth.mockResolvedValueOnce(null);
-    await expectStatus(await publicOrder(json({ publicId: "p" })), 401);
-    signedIn();
-    await expectStatus(await publicOrder(badJson()), 400);
-    await expectStatus(await publicOrder(json({})), 400);
-  });
-
-  it("returns 404 for an unknown order and 403 for a non-author", async () => {
-    signedIn();
-    found(null);
-    await expectStatus(await publicOrder(json({ publicId: "p" })), 404);
-    found({ authorId: "someone-else" });
-    await expectStatus(await publicOrder(json({ publicId: "p", isPublic: true })), 403);
-    expect(m.Order.updateOne).not.toHaveBeenCalled();
-  });
-
-  it("lets the author toggle visibility and echoes the saved value", async () => {
-    signedIn();
-    found({ authorId: "u1" });
-    await expectStatus(await publicOrder(json({ publicId: "p", isPublic: false })), 200, { ok: true, publicId: "p", isPublic: false });
-    expect(m.Order.updateOne).toHaveBeenCalledWith({ publicId: "p" }, { $set: { isPublic: false } });
   });
 });
 

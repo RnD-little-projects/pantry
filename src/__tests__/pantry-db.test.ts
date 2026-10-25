@@ -107,23 +107,21 @@ describe("pantry-db", () => {
     it("queries by author when a userId is given and maps sessions", async () => {
       m.Order.find.mockReturnValueOnce(
         q([
-          { _id: "o1", publicId: "p1", title: "", items: [{}, {}], status: "paid", updatedAt: hoursAgo(2), isPublic: false },
+          { _id: "o1", publicId: "p1", title: "", items: [{}, {}], status: "paid", updatedAt: hoursAgo(2) },
           { _id: "o2", publicId: "p2", title: "T", items: null, status: "draft", createdAt: hoursAgo(48) },
         ]),
       );
       const res = await db.getOverviewSessions("u1");
       expect(m.Order.find.mock.calls[0][0]).toEqual({ authorId: "u1" });
       expect(res[0]).toMatchObject({
-        id: "o1", title: "Order p1", preview: "Paid", items: "2 items", updated: "2h ago", active: true, isPublic: false, status: "paid",
+        id: "o1", title: "Order p1", preview: "Paid", items: "2 items", updated: "2h ago", active: true, status: "paid",
       });
-      expect(res[1]).toMatchObject({ title: "T", preview: "Draft and shareable", items: "0 items", updated: "2d ago", active: true, isPublic: true });
+      expect(res[1]).toMatchObject({ title: "T", preview: "Draft", items: "0 items", updated: "2d ago", active: true });
     });
 
-    it("queries public orders without a userId", async () => {
-      m.Order.find.mockReturnValueOnce(q([{ publicId: "p", status: "finalized", updatedAt: new Date() }]));
-      const res = await db.getOverviewSessions();
-      expect(m.Order.find.mock.calls[0][0]).toEqual({ isPublic: true });
-      expect(res[0]).toMatchObject({ preview: "Ready for checkout", updated: "Just now" });
+    it("returns no orders when signed out, without querying", async () => {
+      expect(await db.getOverviewSessions()).toEqual([]);
+      expect(m.Order.find).not.toHaveBeenCalled();
     });
   });
 
@@ -156,17 +154,27 @@ describe("pantry-db", () => {
       await expect(db.getSharedOrder("p")).rejects.toThrow("ORDER_NOT_FOUND");
     });
 
-    it("throws ORDER_NOT_PUBLIC for a private order viewed by a non-author", async () => {
-      m.Order.findOne.mockReturnValueOnce(q({ publicId: "p", authorId: "a", isPublic: false }));
-      await expect(db.getSharedOrder("p", "b")).rejects.toThrow("ORDER_NOT_PUBLIC");
+    it("throws ORDER_FORBIDDEN for a signed-in customer who is not the author", async () => {
+      m.Order.findOne.mockReturnValueOnce(q({ publicId: "p", authorId: "a" }));
+      await expect(db.getSharedOrder("p", "b", "user")).rejects.toThrow("ORDER_FORBIDDEN");
     });
 
-    it("lets the author view a private order and uses live product prices", async () => {
+    it("throws ORDER_FORBIDDEN for a signed-out visitor, even on orders once marked public", async () => {
+      m.Order.findOne.mockReturnValueOnce(q({ publicId: "p", authorId: "a", isPublic: true }));
+      await expect(db.getSharedOrder("p")).rejects.toThrow("ORDER_FORBIDDEN");
+    });
+
+    it("lets a cashier view someone else's order", async () => {
+      m.Order.findOne.mockReturnValueOnce(q({ publicId: "p", authorId: "a", status: "draft", items: [] }));
+      const res = await db.getSharedOrder("p", "c", "cashier");
+      expect(res.isAuthor).toBe(false);
+    });
+
+    it("lets the author view their order and uses live product prices", async () => {
       m.Order.findOne.mockReturnValueOnce(
         q({
           publicId: "p",
           authorId: "a",
-          isPublic: false,
           status: "draft",
           total: 999,
           items: [
@@ -192,7 +200,7 @@ describe("pantry-db", () => {
       m.Order.findOne.mockReturnValueOnce(
         q({
           publicId: "p",
-          isPublic: true,
+          authorId: "a",
           status: "archived",
           total: 30,
           archivedAt: new Date(),
@@ -200,7 +208,7 @@ describe("pantry-db", () => {
           items: [{ itemName: "Rice", quantity: 3, unitPrice: 10, productId: { price: 99 } }],
         }),
       );
-      const res = await db.getSharedOrder("p");
+      const res = await db.getSharedOrder("p", "admin1", "admin");
       expect(res.items[0]).toMatchObject({ unitPrice: 10, lineTotal: 30 });
       expect(res.total).toBe(30);
       expect(res.receiptUrl).toBe("/r.jpg");
@@ -382,7 +390,12 @@ describe("pantry-db", () => {
 
     it("returns null when nothing is found", async () => {
       m.Order.findOne.mockReturnValueOnce(q(null));
+      expect(await db.getLatestOrderPublicId("u")).toBeNull();
+    });
+
+    it("returns null when signed out, without querying", async () => {
       expect(await db.getLatestOrderPublicId()).toBeNull();
+      expect(m.Order.findOne).not.toHaveBeenCalled();
     });
   });
 
@@ -392,13 +405,14 @@ describe("pantry-db", () => {
       await expect(db.createNewOrder("u", "Rice", "1")).rejects.toThrow("already have an active order");
     });
 
-    it("creates a public draft order with the first item", async () => {
+    it("creates a draft order with the first item", async () => {
       m.Order.findOne.mockReturnValueOnce(q(null));
       m.Product.findOne.mockResolvedValueOnce({ _id: "prod", name: "Rice", normalizedName: "rice", price: 20 });
       const publicId = await db.createNewOrder("u", "Rice", "2");
       expect(publicId).toMatch(/^[a-z0-9]+$/);
       const doc = m.Order.mock.calls[0][0] as Record<string, any>;
-      expect(doc).toMatchObject({ publicId, authorId: "u", isPublic: true, status: "draft" });
+      expect(doc).toMatchObject({ publicId, authorId: "u", status: "draft" });
+      expect(doc).not.toHaveProperty("isPublic");
       expect(doc.items[0]).toMatchObject({ itemName: "Rice", quantity: 2, unitPrice: 20, lineTotal: 40, status: "priced" });
       expect(m.orderSave).toHaveBeenCalled();
       expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ action: "item_add", targetId: publicId }));
@@ -419,7 +433,7 @@ describe("pantry-db", () => {
     it("maps orders", async () => {
       m.Order.find.mockReturnValueOnce(q([{ _id: "o1", publicId: "p", status: "paid", items: [{}], updatedAt: new Date() }]));
       expect((await db.getOrdersByUser("u"))[0]).toMatchObject({
-        id: "o1", title: "Order p", preview: "Paid", items: "1 items", active: false, isPublic: true, status: "paid",
+        id: "o1", title: "Order p", preview: "Paid", items: "1 items", active: false, status: "paid",
       });
     });
   });

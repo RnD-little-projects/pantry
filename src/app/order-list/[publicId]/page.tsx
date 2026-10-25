@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { PantryLayout } from "@/components/pantry-layout";
 import { Badge } from "@/components/ui/badge";
-import { PublicShareToggle } from "@/components/public-share-toggle";
 import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
 import Image from "next/image";
@@ -18,26 +17,19 @@ type SessionPageProps = {
   params: Promise<{
     publicId: string;
   }>;
-  searchParams: Promise<{
-    role?: string | string[];
-  }>;
 };
 
-function getFirstParam(value: string | string[] | undefined) {
-  if (Array.isArray(value)) {
-    return value[0];
-  }
-  return value;
-}
-
-export default async function SessionPage({ params, searchParams }: Readonly<SessionPageProps>) {
+export default async function SessionPage({ params }: Readonly<SessionPageProps>) {
   const session = await auth();
-  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
 
-  const publicId = resolvedParams.publicId || "demo-share-link";
-  const role = getFirstParam(resolvedSearchParams.role) || "viewer";
-  const canPrice = role === "cashier";
-  const showSidebar = !!session;
+  // Orders are private: signing in is required to open one
+  if (!session) {
+    redirect("/login");
+  }
+
+  const { publicId } = await params;
+  const userId = (session.user as Record<string, unknown>)?.id as string | undefined;
+  const userRole = (session.user as Record<string, unknown>)?.role as string | undefined;
 
   let order;
   let historyItems;
@@ -45,16 +37,13 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
   let marketItems;
   try {
     [order, historyItems, sessions, marketItems] = await Promise.all([
-      getSharedOrder(publicId, (session?.user as Record<string, unknown>)?.id as string | undefined),
+      getSharedOrder(publicId, userId, userRole),
       getOrderHistory(publicId),
-      getOverviewSessions((session?.user as Record<string, unknown>)?.id as string | undefined),
+      getOverviewSessions(userId),
       getMarketItems(),
     ]);
   } catch (error) {
-    if (error instanceof Error && (error.message === "ORDER_NOT_PUBLIC" || error.message === "ORDER_NOT_FOUND")) {
-       if (!session) {
-         redirect("/login");
-       }
+    if (error instanceof Error && (error.message === "ORDER_FORBIDDEN" || error.message === "ORDER_NOT_FOUND")) {
        redirect("/unauthorized");
     }
     throw error;
@@ -66,15 +55,15 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
   let accessLabel = "Read only";
   if (isCreator) {
     accessLabel = isArchived ? "View only" : "You can edit";
-  } else if (canPrice) {
-    accessLabel = "Cashier pricing";
+  } else if (userRole === "cashier" || userRole === "admin") {
+    accessLabel = "Staff view";
   }
 
   const canEdit = isCreator && !isArchived;
   const pendingCount = order.items.filter((entry) => entry.unitPrice === null).length;
 
   return (
-    <PantryLayout active="overview" showSidebar={showSidebar} sessions={sessions} marketItems={marketItems} userRole={(session?.user as Record<string, unknown>)?.role as string | undefined} user={session?.user as any}>
+    <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={userRole} user={session.user as any}>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)] lg:items-start">
         {/* The whole order is one receipt */}
         <section aria-label="Order" className="receipt min-w-0 px-5 pb-6 pt-6 sm:px-7">
@@ -165,15 +154,11 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
           )}
         </section>
 
-        {/* Beside the receipt, on the counter: sharing and activity */}
+        {/* Beside the receipt, on the counter: access and activity */}
         <aside className="min-w-0 space-y-6 lg:sticky lg:top-8">
-          <div className="space-y-3">
-            <h2 className="font-display text-lg">Sharing</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
-              <Badge variant={isCreator ? "default" : "outline"}>{accessLabel}</Badge>
-              <ActivityLogMobileModal historyItems={historyItems} isCreator={isCreator} isAdmin={session?.user?.role === "admin"} publicId={publicId} />
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={isCreator ? "default" : "outline"}>{accessLabel}</Badge>
+            <ActivityLogMobileModal historyItems={historyItems} isCreator={isCreator} isAdmin={userRole === "admin"} publicId={publicId} />
           </div>
 
           {/* Activity log (desktop; phones use ActivityLogMobileModal) */}
@@ -185,7 +170,7 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
                   <span className="text-muted-foreground">{entry.date}</span>
                   <span className="min-w-0">
                     <span className="font-semibold">{entry.action}</span> {entry.item}, {entry.quantity}
-                    {(entry.isAdminRemove ? session?.user?.role === "admin" : isCreator) && entry.rawAction === "item_remove" && (
+                    {(entry.isAdminRemove ? userRole === "admin" : isCreator) && entry.rawAction === "item_remove" && (
                       <span className="block"><UndoActionButton publicId={publicId} auditLogId={entry.id} /></span>
                     )}
                   </span>

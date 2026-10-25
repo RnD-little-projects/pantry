@@ -6,7 +6,6 @@ export type WorkspaceSession = {
   items: string;
   updated: string;
   active: boolean;
-  isPublic?: boolean;
   status?: string;
 };
 
@@ -49,7 +48,6 @@ export type SharedOrderView = {
   total: number;
   receiptUrl?: string | null;
   paymentMethod?: "cash" | "receipt" | null;
-  isPublic: boolean;
   status: "draft" | "finalized" | "paid" | "unpaid" | "archived";
   isAuthor?: boolean;
 };

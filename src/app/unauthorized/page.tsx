@@ -5,8 +5,8 @@ export default function UnauthorizedPage() {
     <main className="flex min-h-dvh items-center justify-center bg-background px-4">
       <div className="receipt w-full max-w-md px-8 pb-8 pt-8 text-center">
         <span aria-hidden="true" className="stamp text-base">Private</span>
-        <h1 className="mt-6 text-lg font-bold uppercase tracking-wide">This list isn’t shared</h1>
-        <p className="mt-3 text-sm text-muted-foreground">Ask the owner to make it public, or sign in with the account that made it.</p>
+        <h1 className="mt-6 text-lg font-bold uppercase tracking-wide">You can’t open this</h1>
+        <p className="mt-3 text-sm text-muted-foreground">A list can only be opened by the person who made it and by market staff. Staff pages are for admins and cashiers.</p>
 
         <div className="receipt-rule mt-6 flex flex-col gap-3 pt-6 font-sans">
           <Link

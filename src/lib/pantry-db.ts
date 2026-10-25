@@ -27,7 +27,6 @@ type LeanOrder = {
   createdAt?: Date | string | number | null;
   subtotal?: number | null;
   total?: number | null;
-  isPublic?: boolean | null;
 };
 
 // LeanProduct used implicitly via lean() queries
@@ -128,11 +127,12 @@ export async function getOverviewSessions(userId?: string): Promise<WorkspaceSes
     return [];
   }
 
-  const query = userId 
-    ? { authorId: userId }
-    : { isPublic: true };
+  // Orders are private: signed-out visitors have no list of their own
+  if (!userId) {
+    return [];
+  }
 
-  const orders = await Order.find(query, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1, isPublic: 1 })
+  const orders = await Order.find({ authorId: userId }, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1 })
     .sort({ updatedAt: -1 })
     .limit(6)
     .lean();
@@ -141,11 +141,10 @@ export async function getOverviewSessions(userId?: string): Promise<WorkspaceSes
     id: String(order._id ?? order.publicId ?? index),
     publicId: order.publicId,
     title: order.title || `Order ${order.publicId}`,
-    preview: order.status === "draft" ? "Draft and shareable" : order.status === "paid" ? "Paid" : "Ready for checkout",
+    preview: order.status === "draft" ? "Draft" : order.status === "paid" ? "Paid" : "Ready for checkout",
     items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
     updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
     active: order.status === "draft" || index === 0,
-    isPublic: order.isPublic !== false,
     status: order.status || "draft",
   }));
 }
@@ -226,7 +225,7 @@ async function getOrCreateProduct(itemName: string) {
   return matchedProduct;
 }
 
-export async function getSharedOrder(publicId: string, userId?: string): Promise<SharedOrderView> {
+export async function getSharedOrder(publicId: string, userId?: string, viewerRole?: string): Promise<SharedOrderView> {
   const ready = await canUseMongo();
   if (!ready) {
     throw new Error("DATABASE_NOT_READY");
@@ -240,8 +239,10 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
   const orderAuthorId = order.authorId ? String(order.authorId) : null;
   const isAuthor = !!(userId && orderAuthorId && orderAuthorId === String(userId));
   
-  if (order.isPublic !== true && !isAuthor) {
-    throw new Error("ORDER_NOT_PUBLIC");
+  // Only the owner and staff (who price and review orders) may open an order
+  const isStaff = viewerRole === "admin" || viewerRole === "cashier";
+  if (!isAuthor && !isStaff) {
+    throw new Error("ORDER_FORBIDDEN");
   }
 
   const orderItems = order.items as Record<string, unknown>[] | null;
@@ -286,7 +287,6 @@ export async function getSharedOrder(publicId: string, userId?: string): Promise
     total,
     receiptUrl: (order.receiptUrl as string) || null,
     paymentMethod: (order.paymentMethod as "cash" | "receipt" | null) ?? null,
-    isPublic: order.isPublic !== false,
     status: (order.status as "draft" | "finalized" | "paid" | "unpaid" | "archived") ?? "draft",
     isAuthor,
   };
@@ -568,16 +568,13 @@ export async function getLatestOrderPublicId(userId?: string): Promise<string | 
     return null;
   }
 
-  const query: Record<string, any> = userId ? { authorId: userId } : { isPublic: true };
-  query.status = { $ne: "archived" };
-
-  const latestOrder = await Order.findOne(query, { publicId: 1 })
-    .sort({ updatedAt: -1 })
-    .lean();
-
-  if (!latestOrder && userId) {
+  if (!userId) {
     return null;
   }
+
+  const latestOrder = await Order.findOne({ authorId: userId, status: { $ne: "archived" } }, { publicId: 1 })
+    .sort({ updatedAt: -1 })
+    .lean();
 
   return latestOrder?.publicId || null;
 }
@@ -608,7 +605,6 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     publicId,
     authorId: userId,
     title: dateStr,
-    isPublic: true,
     status: "draft",
     items: [
       {
@@ -680,7 +676,6 @@ export async function getOrdersByUser(userId: string): Promise<WorkspaceSession[
     items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
     updated: formatRelativeDate((order.updatedAt ?? order.createdAt) as string | number | Date),
     active: false,
-    isPublic: order.isPublic !== false,
     status: (order.status as string) || "draft",
   }));
 }
