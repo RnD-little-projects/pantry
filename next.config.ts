@@ -1,15 +1,8 @@
-import withPWA from "next-pwa";
+import type { NextConfig } from "next";
 
-const nextConfig = {
+const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ["dev-pantry.nonano.dev"],
 };
 
-module.exports = {
-  allowedDevOrigins: ['dev-pantry.nonano.dev'],
-}
-
-export default withPWA({
-  dest: "public",
-  register: true,
-  disable: true,
-})(nextConfig);
+export default nextConfig;

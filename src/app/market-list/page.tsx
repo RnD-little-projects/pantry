@@ -1,7 +1,6 @@
 import { auth } from "@/auth";
 import { PantryLayout } from "../../components/pantry-layout";
 import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
 import { getMarketItems, getOverviewSessions } from "../../lib/pantry-db";
 import { redirect } from "next/navigation";
 
@@ -32,14 +31,9 @@ export default async function MarketListPage() {
                 <span aria-hidden="true" className="min-w-4 flex-1 translate-y-[-4px] border-b border-dotted border-input" />
                 {item.price === "Pending" ? <span className="stamp">No price</span> : <span className="font-bold">{item.price}</span>}
               </div>
-              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-2">
-                  <Badge variant={item.status === "Active" ? "success" : "outline"}>{item.status}</Badge>
-                  {item.note}
-                </span>
-                <Button variant="outline" size="sm">
-                  Archive
-                </Button>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <Badge variant={item.status === "Active" ? "success" : "outline"}>{item.status}</Badge>
+                {item.note}
               </div>
             </li>
           ))}

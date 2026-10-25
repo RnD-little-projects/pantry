@@ -37,19 +37,6 @@
                 "uriFormat": "%s",
                 "webRoot": "${workspaceFolder}"
             }
-        },
-        {
-            "name": "Next.js: debug custom server (server.js)",
-            "type": "node",
-            "request": "launch",
-            "program": "${workspaceFolder}/server.js",
-            "env": {
-                "NODE_ENV": "development",
-                "PORT": "3001"
-            },
-            "skipFiles": [
-                "<node_internals>/**"
-            ]
         }
     ]
 }
