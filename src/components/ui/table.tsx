@@ -22,7 +22,7 @@ export function TableRow({ className, ...props }: Readonly<HTMLAttributes<HTMLTa
   return (
     <tr
       className={cn(
-        "border-b border-border/60 transition-colors hover:bg-white/[0.03] data-[state=selected]:bg-white/[0.04]",
+        "border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
         className,
       )}
       {...props}
@@ -34,7 +34,7 @@ export function TableHead({ className, ...props }: Readonly<HTMLAttributes<HTMLT
   return (
     <th
       className={cn(
-        "h-12 px-4 text-left align-middle text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-11 px-4 text-left align-middle text-xs font-semibold text-muted-foreground [&:has([role=checkbox])]:pr-0",
         className,
       )}
       {...props}

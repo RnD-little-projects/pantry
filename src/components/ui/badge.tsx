@@ -2,12 +2,14 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "../../lib/utils";
 
-type BadgeVariant = "default" | "secondary" | "outline";
+type BadgeVariant = "default" | "secondary" | "outline" | "success" | "highlight";
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: "border-transparent bg-primary text-primary-foreground",
-  secondary: "border-border/70 bg-secondary text-secondary-foreground",
-  outline: "border-border/80 bg-transparent text-foreground",
+  secondary: "border-transparent bg-secondary text-secondary-foreground",
+  outline: "border-border bg-transparent text-foreground",
+  success: "border-transparent bg-success/15 text-success",
+  highlight: "border-transparent bg-highlight/30 text-foreground",
 };
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
@@ -18,7 +20,7 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.28em]",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
         variantClasses[variant],
         className,
       )}

@@ -18,7 +18,7 @@ export function ShellBrand({ collapsed, onToggle }: Readonly<BrandProps>) {
         collapsed ? "w-0 opacity-0" : "w-[140px] opacity-100"
       )}>
         <Link href="/" className="w-[140px] block hover:opacity-80 transition-opacity">
-          <p className="whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.42em] text-foreground/90">Pantry OS</p>
+          <p className="font-display whitespace-nowrap text-xl text-primary">Pantry</p>
         </Link>
       </div>
       <Button

@@ -98,7 +98,7 @@ export function AccountMenu({
         )}>
           <div className="w-[140px] flex items-center justify-between pl-2">
             <span className="truncate font-medium text-sm">{user?.name || "Account"}</span>
-            <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground whitespace-nowrap">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
               {user?.role || "Menu"}
             </span>
           </div>
@@ -108,17 +108,17 @@ export function AccountMenu({
       <Dialog
         open={open}
         onOpenChange={onOpenChange}
-        title="Account Profile"
-        description="Manage your profile details, theme preferences, and security settings."
+        title="Your account"
+        description="Profile, email, theme and password."
       >
         <div className="space-y-6 py-2">
           {/* User Profile Header */}
-          <div className="flex items-center gap-4 p-4 rounded-2xl border border-border/60 bg-muted/20 backdrop-blur-sm">
+          <div className="flex items-center gap-4 p-4 rounded-control border border-border bg-muted/50">
             <div className="relative shrink-0">
               {user?.image ? (
-                <img src={user.image} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20 shadow-sm" />
+                <img src={user.image} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-primary/20" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-3xl">
                   👤
                 </div>
               )}
@@ -126,7 +126,7 @@ export function AccountMenu({
             <div className="min-w-0 flex-1 space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="text-lg font-bold text-foreground truncate">{user?.name || "Guest User"}</h3>
-                <Badge variant="outline" className="uppercase text-[9px] font-bold tracking-wider px-2 py-0.5">
+                <Badge variant="secondary" className="capitalize">
                   {user?.role || userRole || "User"}
                 </Badge>
               </div>
@@ -137,11 +137,11 @@ export function AccountMenu({
           </div>
 
           {/* Email Management Section */}
-          <div className="space-y-3 p-4 rounded-2xl border border-border/60 bg-card shadow-sm">
+          <div className="space-y-3 p-4 rounded-control border border-border bg-card">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
                 <Mail className="w-4 h-4 text-primary" />
-                <span>Email Address</span>
+                <span>Email</span>
               </div>
               {!editingEmail && (
                 <Button 
@@ -156,12 +156,12 @@ export function AccountMenu({
             </div>
 
             {!editingEmail ? (
-              <div className="flex items-center justify-between bg-muted/40 p-3 rounded-xl border border-border/40">
+              <div className="flex items-center justify-between bg-muted/40 p-3 rounded-control border border-border">
                 <span className={cn("text-xs truncate", !user?.email && "text-muted-foreground italic")}>
                   {user?.email ? user.email : "No email address linked to this account."}
                 </span>
                 {user?.email && (
-                  <Badge variant="secondary" className="text-[10px] gap-1 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20">
+                  <Badge variant="success">
                     <CheckCircle2 className="w-3 h-3" /> Connected
                   </Badge>
                 )}
@@ -201,7 +201,7 @@ export function AccountMenu({
               </form>
             )}
             {emailSuccess && !editingEmail && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+              <div className="flex items-center gap-1.5 text-xs text-success bg-success/12 p-2 rounded-lg border border-success/25">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 <span>{emailSuccess}</span>
               </div>
@@ -214,7 +214,7 @@ export function AccountMenu({
               <Button
                 type="submit"
                 variant="outline"
-                className="w-full flex items-center justify-between rounded-2xl px-4 py-3.5 h-auto text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground border border-border/60 group shadow-sm hover:border-primary/40"
+                className="w-full flex items-center justify-start rounded-control px-4 py-3.5 h-auto text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground border border-border group hover:border-primary/40"
               >
                 <span className="flex items-center gap-3">
                   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
@@ -236,29 +236,26 @@ export function AccountMenu({
                     />
                   </svg>
                   <span className="font-medium text-foreground group-hover:text-primary transition-colors">
-                    Connect Google Account
+                    Connect Google account
                   </span>
-                </span>
-                <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground group-hover:text-primary transition-colors">
-                  OAuth
                 </span>
               </Button>
             </form>
           </div>
 
           {/* Theme Preferences */}
-          <div className="space-y-2 p-4 rounded-2xl border border-border/60 bg-card shadow-sm">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.38em] text-muted-foreground">Theme Preference</p>
+          <div className="space-y-2 p-4 rounded-control border border-border bg-card">
+            <p className="text-xs font-semibold text-muted-foreground">Theme</p>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {(["system", "light", "dark"] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   className={cn(
-                    "flex items-center justify-center rounded-xl border py-2.5 text-xs font-bold uppercase transition shadow-sm",
+                    "flex items-center justify-center rounded-control border py-2.5 text-sm font-semibold capitalize transition-colors",
                     themeMode === mode
-                      ? "border-primary/50 bg-primary/15 text-foreground ring-2 ring-primary/20"
-                      : "border-border/70 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-foreground hover:bg-muted",
                   )}
                   onClick={() => onThemeChange(mode)}
                 >
@@ -269,37 +266,35 @@ export function AccountMenu({
           </div>
 
           {/* Actions & Administration */}
-          <div className="space-y-2 border-t border-border/60 pt-4">
+          <div className="space-y-2 border-t border-border pt-4">
             {(userRole === "admin" || userRole === "cashier") && (
               <>
                 <Link
                   href="/admin/orders"
-                  className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-medium text-primary transition hover:bg-primary/10 border border-primary/20 bg-primary/5 shadow-sm"
+                  className="flex w-full items-center justify-start rounded-control px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-accent/70 border border-border bg-accent text-accent-foreground"
                   onClick={() => onOpenChange(false)}
                 >
                   <span className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
-                    <span>Manage Orders</span>
+                    <span>Manage orders</span>
                   </span>
-                  <span className="text-[10px] uppercase tracking-[0.28em]">Admin</span>
                 </Link>
                 <Link
                   href="/admin/products"
-                  className="flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-sm font-medium text-primary transition hover:bg-primary/10 border border-primary/20 bg-primary/5 shadow-sm"
+                  className="flex w-full items-center justify-start rounded-control px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-accent/70 border border-border bg-accent text-accent-foreground"
                   onClick={() => onOpenChange(false)}
                 >
                   <span className="flex items-center gap-2">
                     <Shield className="w-4 h-4" />
-                    <span>Manage Products</span>
+                    <span>Manage products</span>
                   </span>
-                  <span className="text-[10px] uppercase tracking-[0.28em]">Admin</span>
                 </Link>
               </>
             )}
 
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground border border-border/40 shadow-sm"
+              className="flex w-full items-center justify-start rounded-control px-4 py-3.5 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground border border-border"
               onClick={() => {
                 setPasswordModalOpen(true);
                 onOpenChange(false);
@@ -307,23 +302,21 @@ export function AccountMenu({
             >
               <span className="flex items-center gap-2 font-medium">
                 <Key className="w-4 h-4 text-muted-foreground" />
-                <span>Change Password</span>
+                <span>Change password</span>
               </span>
-              <span className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Security</span>
             </button>
 
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-2xl px-4 py-3.5 text-left text-sm text-destructive hover:bg-destructive/10 transition border border-destructive/20 bg-destructive/5 shadow-sm font-medium"
+              className="flex w-full items-center justify-start rounded-control px-4 py-3.5 text-left text-sm text-destructive hover:bg-destructive/10 transition border border-destructive/20 bg-destructive/5 font-medium"
               onClick={async () => {
                 await logoutAction();
               }}
             >
               <span className="flex items-center gap-2">
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <span>Sign out</span>
               </span>
-              <span className="text-[10px] uppercase tracking-[0.28em]">Action</span>
             </button>
           </div>
         </div>

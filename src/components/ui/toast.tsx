@@ -42,17 +42,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast, dismiss }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none">
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[200] flex flex-col items-center gap-2 sm:inset-x-auto sm:right-4 sm:items-end">
         {toasts.map((t) => (
           <div
             key={t.id}
             className={cn(
-              "pointer-events-auto flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-lg transition-all animate-in slide-in-from-right-full duration-300",
-              t.type === "success" && "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
-              t.type === "error" && "bg-destructive/10 border-destructive/20 text-destructive",
-              t.type === "info" && "bg-primary/10 border-primary/20 text-primary",
-              t.type === "loading" && "bg-muted/50 border-border/50 text-muted-foreground",
-              "backdrop-blur-xl"
+              "pointer-events-auto flex items-center gap-3 rounded-full bg-foreground py-2 pl-4 pr-2 text-background animate-sheet",
+              t.type === "success" && "[&>svg:first-child]:text-success",
+              t.type === "error" && "bg-destructive text-destructive-foreground",
+              t.type === "info" && "[&>svg:first-child]:text-highlight",
             )}
           >
             {t.type === "success" && <CheckCircle2 className="h-5 w-5" />}
@@ -63,8 +61,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <p className="text-sm font-medium">{t.message}</p>
             
             <button
+              type="button"
+              aria-label="Dismiss"
               onClick={() => dismiss(t.id)}
-              className="ml-2 rounded-full p-1 hover:bg-black/5 dark:hover:bg-white/5"
+              className="ml-1 rounded-full p-1.5 hover:bg-background/15"
             >
               <X className="h-4 w-4 opacity-50 hover:opacity-100" />
             </button>

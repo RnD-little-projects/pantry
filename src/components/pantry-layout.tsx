@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import { ShoppingBasket } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import type { MarketItem, WorkspaceSession } from "../lib/pantry-types";
@@ -62,7 +63,7 @@ export function PantryLayout({
   const themeMode = (theme as ThemeMode) || "system";
   const setThemeMode = (mode: ThemeMode) => setTheme(mode);
 
-  const sidebarTitle = active === "market" ? "Market" : "Order list";
+  const sidebarTitle = active === "market" ? "Market" : "Your orders";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -78,14 +79,17 @@ export function PantryLayout({
   }, []);
 
   return (
-    <main className="relative min-h-screen bg-background text-foreground transition-colors duration-300">
-      {/* Background Grid Pattern */}
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(var(--grid-color)_1px,transparent_1px),linear-gradient(90deg,var(--grid-color)_1px,transparent_1px)] bg-[size:72px_72px] opacity-100" />
-
+    <main className="relative min-h-screen bg-background text-foreground">
       {showSidebar && (
-        <div className="flex items-center justify-between border-b border-border/70 bg-card/90 backdrop-blur-xl p-4 sticky top-0 z-40 lg:hidden">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">{sidebarTitle}</p>
-          <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)}>
+        <div className="sticky top-0 z-40 flex items-center justify-between bg-band px-4 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] text-band-foreground lg:hidden">
+          <Link href="/" className="font-display text-xl">Pantry</Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Open menu"
+            className="text-band-foreground hover:bg-band-foreground/15"
+            onClick={() => setMobileMenuOpen(true)}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
           </Button>
         </div>
@@ -101,7 +105,7 @@ export function PantryLayout({
         {showSidebar && (
           <div 
             className={cn(
-              "fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden transition-opacity duration-300",
+              "fixed inset-0 z-40 bg-foreground/40 lg:hidden transition-opacity duration-200",
               mobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
             onClick={() => setMobileMenuOpen(false)}
@@ -112,7 +116,7 @@ export function PantryLayout({
         {showSidebar && (
           <aside
             className={cn(
-              "fixed inset-y-0 left-0 z-50 flex h-screen flex-col border-r border-border/70 bg-card/95 py-5 backdrop-blur-xl transition-all duration-300 lg:sticky lg:top-0 lg:translate-x-0 overflow-x-hidden",
+              "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col overflow-x-hidden border-r border-border bg-card py-5 transition-[transform,width] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:translate-x-0",
               mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
               collapsed ? "w-[64px] px-2" : "w-[280px] sm:w-[320px] lg:w-[220px] px-4",
             )}
@@ -134,70 +138,70 @@ export function PantryLayout({
                 )}>
                   <div className="w-[188px] space-y-3">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">Navigation</p>
+                      <p className="px-2 text-xs font-semibold text-muted-foreground">Manage</p>
                     </div>
                     <div className="space-y-1">
                       <Link
                         href="/"
                         className={cn(
-                          "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                          "block w-full rounded-control px-2 py-2 text-left transition-colors",
                           pathname === "/" 
-                            ? "text-foreground font-bold bg-muted/50" 
-                            : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                            ? "bg-accent font-semibold text-accent-foreground" 
+                            : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <span className="truncate text-sm tracking-wide transition-all">Home</span>
+                        <span className="truncate text-sm">Home</span>
                       </Link>
                       <Link
                         href="/admin/orders"
                         className={cn(
-                          "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                          "block w-full rounded-control px-2 py-2 text-left transition-colors",
                           pathname === "/admin/orders" 
-                            ? "text-foreground font-bold bg-muted/50" 
-                            : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                            ? "bg-accent font-semibold text-accent-foreground" 
+                            : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <span className="truncate text-sm tracking-wide transition-all">User Orders</span>
+                        <span className="truncate text-sm">User Orders</span>
                       </Link>
                       <Link
                         href="/admin/products"
                         className={cn(
-                          "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                          "block w-full rounded-control px-2 py-2 text-left transition-colors",
                           pathname === "/admin/products" 
-                            ? "text-foreground font-bold bg-muted/50" 
-                            : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                            ? "bg-accent font-semibold text-accent-foreground" 
+                            : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <span className="truncate text-sm tracking-wide transition-all">Item Management</span>
+                        <span className="truncate text-sm">Item Management</span>
                       </Link>
                       {userRole === "admin" && (
                         <>
                           <Link
                             href="/admin/users"
                             className={cn(
-                              "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                              "block w-full rounded-control px-2 py-2 text-left transition-colors",
                               pathname === "/admin/users" 
-                                ? "text-foreground font-bold bg-muted/50" 
-                                : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                                ? "bg-accent font-semibold text-accent-foreground" 
+                                : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
-                            <span className="truncate text-sm tracking-wide transition-all">User Management</span>
+                            <span className="truncate text-sm">User Management</span>
                           </Link>
                           <Link
                             href="/admin/audit-logs"
                             className={cn(
-                              "block w-full text-left transition-colors duration-200 py-1.5 rounded-md px-2",
+                              "block w-full rounded-control px-2 py-2 text-left transition-colors",
                               pathname === "/admin/audit-logs" 
-                                ? "text-foreground font-bold bg-muted/50" 
-                                : "text-foreground/70 font-medium hover:text-foreground hover:bg-muted/30"
+                                ? "bg-accent font-semibold text-accent-foreground" 
+                                : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
-                            <span className="truncate text-sm tracking-wide transition-all">Audit Logs</span>
+                            <span className="truncate text-sm">Audit Logs</span>
                           </Link>
                         </>
                       )}
@@ -211,7 +215,7 @@ export function PantryLayout({
                     collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
                   )}>
                     <div className="flex items-center justify-between mb-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">{sidebarTitle}</p>
+                      <p className="px-1 text-xs font-semibold text-muted-foreground">{sidebarTitle}</p>
                     </div>
                   </div>
                   <SessionList collapsed={collapsed} sessions={sessions} />
@@ -220,7 +224,7 @@ export function PantryLayout({
             </div>
 
             {/* Sidebar Footer Actions */}
-            <div className="mt-5 space-y-3 border-t border-border/60 pt-4 shrink-0">
+            <div className="mt-5 space-y-3 border-t border-border pt-4 shrink-0">
               <Button
                 variant="secondary"
                 className={cn("w-full", collapsed ? "justify-center px-0" : "justify-between px-2")}
@@ -230,7 +234,7 @@ export function PantryLayout({
                   setQrOpen(true);
                 }}
               >
-                <div aria-hidden="true" className="w-9 shrink-0 flex justify-center text-muted-foreground">
+                <div aria-hidden="true" className="w-9 shrink-0 flex justify-center text-primary">
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <rect width="6" height="6" x="3" y="3" rx="1.5" />
                     <rect width="6" height="6" x="15" y="3" rx="1.5" />
@@ -262,7 +266,7 @@ export function PantryLayout({
                   setMarketOpen(true);
                 }}
               >
-                <span aria-hidden="true" className="text-lg w-9 shrink-0 flex justify-center">🛒</span>
+                <ShoppingBasket aria-hidden="true" className="h-[18px] w-9 shrink-0 text-primary" />
                 <div className={cn(
                   "overflow-hidden transition-all duration-300",
                   collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
@@ -288,7 +292,7 @@ export function PantryLayout({
 
         {/* Content Area Section */}
         <section className="flex min-w-0 flex-1">
-          <div className="flex min-h-[calc(100vh-65px)] lg:min-h-screen w-full flex-col px-4 py-4 sm:px-6 lg:px-8 text-left">
+          <div className="flex min-h-[calc(100dvh-61px)] w-full flex-col px-4 py-5 text-left sm:px-6 lg:min-h-screen lg:px-10 lg:py-8">
             <div className={cn(
               "flex w-full flex-1 flex-col gap-6 text-left",
               pathname.startsWith("/order-list") || pathname.startsWith("/admin/orders")

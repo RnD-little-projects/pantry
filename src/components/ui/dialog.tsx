@@ -42,20 +42,27 @@ export function Dialog({
   if (!open || !mounted) return null;
 
   const content = (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center sm:p-4">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
+      <div
+        className="absolute inset-0 bg-foreground/40 animate-fade"
         onClick={() => onOpenChange(false)}
       />
-      
-      {/* Content */}
-      <div className="relative w-full max-w-md scale-100 overflow-hidden rounded-3xl border border-border/60 bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+
+      {/* Content: bottom sheet on phones, centered card on larger screens */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="dialog-title"
+        className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-sheet border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-sheet custom-scrollbar sm:rounded-sheet"
+      >
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+          <h2 id="dialog-title" className="font-display text-xl text-balance">{title}</h2>
           <button
+            type="button"
+            aria-label="Close"
             onClick={() => onOpenChange(false)}
-            className="rounded-full p-1.5 text-muted-foreground hover:bg-muted transition-colors"
+            className="-mr-2 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-5 w-5" />
           </button>

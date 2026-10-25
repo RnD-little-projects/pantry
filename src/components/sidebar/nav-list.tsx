@@ -23,19 +23,19 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
     )}>
       <div className="w-[188px] space-y-3 px-1">
         {showCreateButton && (
-          <div className="mb-3 pb-2 border-b border-border/40">
+          <div className="mb-3 border-b border-border pb-3">
             <Link
               href="/"
-              className="flex items-center gap-2 py-1 px-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+              className="flex items-center gap-2 rounded-control px-2 py-2 text-sm font-semibold text-primary transition-colors hover:bg-accent"
             >
-              <span className="flex h-4 w-4 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-[10px]">
+              <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
                 +
               </span>
-              <span>Create new order</span>
+              <span>New order</span>
             </Link>
           </div>
         )}
-        <div className="space-y-3">
+        <div className="space-y-0.5">
           {sessions.map((session) => {
             const href = session.publicId ? `/order-list/${session.publicId}` : "#";
             const isActive = pathname === href;
@@ -45,15 +45,15 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
                 key={session.id ?? session.publicId ?? session.title}
                 href={href}
                 className={cn(
-                  "block w-full text-left transition-colors duration-200",
+                  "block w-full rounded-control px-2 py-2 text-left transition-colors",
                   isActive
-                    ? "text-foreground font-bold"
-                    : "text-foreground/50 font-normal hover:text-foreground",
+                    ? "bg-accent font-semibold text-accent-foreground"
+                    : "text-foreground/70 hover:bg-muted hover:text-foreground",
                 )}
               >
                 <span className={cn(
-                  "truncate text-sm tracking-wide transition-all",
-                  session.status === "archived" && "line-through opacity-60 text-muted-foreground"
+                  "block truncate text-sm",
+                  session.status === "archived" && "text-muted-foreground line-through"
                 )}>
                   {session.title}
                 </span>

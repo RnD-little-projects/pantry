@@ -59,7 +59,7 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 p-4 backdrop-blur-md transition-opacity duration-300">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 transition-opacity duration-300">
         <button
           type="button"
           aria-label="Close QR code modal"
@@ -67,10 +67,10 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
           onClick={onClose}
         />
         
-        <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-border/40 bg-background/95 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="relative z-10 w-full max-w-md overflow-hidden rounded-control border border-border bg-card p-6 animate-sheet">
           
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-border/40">
+          <div className="flex items-center justify-between pb-4 border-b border-border">
             <div>
               <h3 className="text-lg font-semibold tracking-tight">QR Codes</h3>
               <p className="text-xs text-muted-foreground">Select a code to enlarge</p>
@@ -111,7 +111,8 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
                     onClick={() => setSelectedImage(filename)}
                     className="group flex flex-col items-center gap-1.5 rounded-lg p-1.5 hover:bg-muted/30 transition-all duration-200 cursor-pointer"
                   >
-                    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-border/40 bg-white p-1.5 transition-all duration-200 group-hover:scale-[1.04] group-hover:border-primary/40 group-hover:shadow-sm">
+                    {/* QR codes need a white quiet zone to scan, regardless of theme */}
+                    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-border bg-white p-1.5 transition-all duration-200 group-hover:scale-[1.04] group-hover:border-primary/40">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={`/assets/images/${filename}`} 
@@ -120,7 +121,7 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
                         loading="lazy"
                       />
                     </div>
-                    <span className="text-[10px] font-medium text-muted-foreground truncate w-full text-center transition-colors group-hover:text-foreground">
+                    <span className="text-xs font-medium text-muted-foreground truncate w-full text-center transition-colors group-hover:text-foreground">
                       {formatLabel(filename)}
                     </span>
                   </button>
@@ -133,7 +134,7 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
 
       {/* Lightbox / Zoom View */}
       {selectedImage && (
-        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-background/95 p-4 animate-fade">
           <button
             type="button"
             className="absolute inset-0 cursor-zoom-out"
@@ -142,7 +143,7 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
           />
           
           <div className="relative z-10 flex flex-col items-center max-w-[95vw] max-h-[90vh] animate-in zoom-in-95 duration-200">
-            <div className="overflow-hidden rounded-2xl bg-white p-4 shadow-2xl max-w-full">
+            <div className="overflow-hidden rounded-control bg-white p-4 max-w-full">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img 
                 src={`/assets/images/${selectedImage}`} 
@@ -151,14 +152,14 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
               />
             </div>
             
-            <p className="mt-4 text-sm font-semibold text-white/90 tracking-wide bg-black/40 px-4 py-1.5 rounded-full backdrop-blur-sm">
+            <p className="mt-4 rounded-full bg-muted px-4 py-1.5 text-sm font-semibold text-foreground">
               {formatLabel(selectedImage)}
             </p>
             
             <button
               type="button"
               onClick={() => setSelectedImage(null)}
-              className="mt-6 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2 text-xs font-medium text-white transition-colors cursor-pointer"
+              className="mt-6 cursor-pointer rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
               Back to Gallery
             </button>

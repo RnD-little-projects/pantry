@@ -18,40 +18,39 @@ export function MarketModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 dark:bg-slate-950/75 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 animate-fade sm:items-center sm:p-4">
       <button
         type="button"
         aria-label="Close market list modal"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-4xl overflow-hidden rounded-[2rem] border border-border/70 bg-card/96 shadow-[0_36px_100px_-50px_rgba(0,0,0,0.95)] backdrop-blur-xl">
-        <div className="flex items-start justify-between gap-4 border-b border-border/60 px-6 py-5">
+      <div role="dialog" aria-modal="true" aria-labelledby="market-modal-title" className="relative z-10 w-full max-w-2xl overflow-hidden rounded-t-sheet border border-border bg-card animate-sheet sm:rounded-sheet">
+        <div className="flex items-center justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.42em] text-muted-foreground">Market list</p>
-            <h3 className="mt-2 text-2xl font-semibold tracking-tight">Item price list</h3>
-            <p className="mt-2 text-sm text-muted-foreground">A quick modal view of item pricing without leaving the sidebar flow.</p>
+            <h3 id="market-modal-title" className="font-display text-2xl">Market prices</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Today’s price for each item the market carries.</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
         </div>
 
-        <div className="grid grid-cols-[1.5fr_0.6fr_0.5fr] border-b border-border/60 px-6 py-3 text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+        <div className="grid grid-cols-[1fr_auto_5rem] gap-4 border-b border-border px-5 py-2.5 sm:px-6 text-xs font-semibold text-muted-foreground">
           <span>Item</span>
           <span className="text-right">Price</span>
           <span className="text-right">Status</span>
         </div>
 
-        <div className="max-h-[60vh] divide-y divide-border/60 overflow-y-auto">
+        <div className="max-h-[65dvh] divide-y divide-border overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
           {marketItems.map((item) => (
-            <div key={item.id ?? item.name} className="grid grid-cols-[1.5fr_0.6fr_0.5fr] items-center px-6 py-4 hover:bg-muted/30">
+            <div key={item.id ?? item.name} className="grid grid-cols-[1fr_auto_5rem] items-center gap-4 px-5 py-4 sm:px-6">
               <div>
-                <div className="font-medium text-foreground">{item.name}</div>
+                <div className="font-semibold text-foreground">{item.name}</div>
                 {item.aliases && item.aliases.length > 0 && (
                   <div className="mt-0.5 flex flex-wrap gap-1">
                     {item.aliases.map(alias => (
-                      <span key={alias} className="text-[9px] text-muted-foreground/60 italic">
+                      <span key={alias} className="text-xs text-muted-foreground">
                         aka: {alias}
                       </span>
                     ))}
@@ -59,9 +58,9 @@ export function MarketModal({
                 )}
                 <div className="mt-1 text-xs text-muted-foreground">{item.note}</div>
               </div>
-              <div className="text-right font-mono text-sm text-muted-foreground">{item.price}</div>
+              <div className="text-right"><span className="sticker text-sm">{item.price}</span></div>
               <div className="text-right">
-                <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
+                <Badge variant={item.status === "Active" ? "success" : "secondary"}>{item.status}</Badge>
               </div>
             </div>
           ))}

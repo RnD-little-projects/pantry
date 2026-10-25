@@ -6,19 +6,18 @@ type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "destructiv
 type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  default:
-    "border-transparent bg-primary text-primary-foreground shadow-[0_12px_30px_-14px_rgba(45,212,191,0.75)] hover:brightness-110",
-  secondary: "border-border/70 bg-secondary text-secondary-foreground hover:bg-secondary/80",
-  outline: "border-border/80 bg-transparent text-foreground hover:bg-white/5",
-  ghost: "border-transparent bg-transparent text-foreground hover:bg-white/5",
+  default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
+  secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/70",
+  outline: "border-input bg-card text-foreground hover:bg-muted",
+  ghost: "border-transparent bg-transparent text-foreground hover:bg-muted",
   destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
   default: "h-11 px-4 py-2.5",
-  sm: "h-9 px-3 text-xs",
-  lg: "h-12 px-6 text-sm",
-  icon: "h-9 w-9 p-0",
+  sm: "h-9 px-3 text-[13px]",
+  lg: "h-12 px-6 text-base",
+  icon: "h-10 w-10 p-0",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -37,7 +36,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-2xl border text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex touch-manipulation items-center justify-center gap-2 rounded-control border text-sm font-semibold transition-colors duration-150 active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
         className,

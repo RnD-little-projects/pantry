@@ -40,11 +40,11 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative flex h-8 items-center rounded-full bg-muted/30 p-1 border border-border/40">
+      <div className="relative flex h-8 items-center rounded-full bg-muted/30 p-1 border border-border">
         {/* Sliding Background */}
         <div 
           className={cn(
-            "absolute h-6 w-[70px] rounded-full bg-primary transition-all duration-300 ease-in-out shadow-sm",
+            "absolute h-6 w-[70px] rounded-full bg-primary transition-all duration-300 ease-in-out",
             isPublic ? "left-[76px]" : "left-1"
           )}
         />
@@ -54,7 +54,7 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
           disabled={pending}
           onClick={() => handleToggle(false)}
           className={cn(
-            "relative z-10 w-[70px] px-2 text-[9px] font-bold uppercase tracking-widest transition-colors duration-200",
+            "relative z-10 w-[70px] px-2 text-xs font-bold transition-colors duration-200",
             !isPublic ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -66,7 +66,7 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
           disabled={pending}
           onClick={() => handleToggle(true)}
           className={cn(
-            "relative z-10 w-[70px] px-2 text-[9px] font-bold uppercase tracking-widest transition-colors duration-200",
+            "relative z-10 w-[70px] px-2 text-xs font-bold transition-colors duration-200",
             isPublic ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -75,7 +75,7 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
         {/* Circular Loading Overlay */}
         {pending && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-full bg-background/20 backdrop-blur-[1px]">
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-full bg-background/20">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         )}
@@ -83,7 +83,7 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
       {isPublic && (
         <div className={cn(
-          "text-[9px] font-bold uppercase tracking-widest transition-all duration-300 overflow-hidden whitespace-nowrap",
+          "text-xs font-bold transition-all duration-300 overflow-hidden whitespace-nowrap",
           copied ? "w-16 opacity-100" : "w-0 opacity-0"
         )}>
           <span className="text-primary">Copied!</span>

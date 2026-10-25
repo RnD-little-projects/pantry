@@ -30,9 +30,9 @@ export default function ForcePasswordChangeClientRedirect() {
     
     if (!isForceChangePage && !isApiRoute && !isLogin) {
       return (
-        <div className="fixed inset-0 z-[9999] bg-slate-950 flex flex-col items-center justify-center text-white">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent mb-4"></div>
-          <p className="text-slate-400 animate-pulse">Redirecting to security update...</p>
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background text-foreground">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4"></div>
+          <p className="text-muted-foreground">Redirecting to security update...</p>
         </div>
       );
     }

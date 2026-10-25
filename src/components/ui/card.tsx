@@ -6,7 +6,7 @@ export function Card({ className, ...props }: Readonly<HTMLAttributes<HTMLDivEle
   return (
     <div
       className={cn(
-        "rounded-[1.75rem] border border-border/70 bg-card/80 text-card-foreground shadow-[0_24px_80px_-48px_rgba(15,23,42,0.9)] backdrop-blur-xl",
+        "rounded-sheet border border-border bg-card text-card-foreground",
         className,
       )}
       {...props}
@@ -20,7 +20,7 @@ export function CardHeader({ className, ...props }: Readonly<HTMLAttributes<HTML
 
 export function CardTitle({ className, children, ...props }: Readonly<HTMLAttributes<HTMLHeadingElement> & { children: ReactNode }>) {
   return (
-    <h3 className={cn("text-lg font-semibold leading-none tracking-tight", className)} {...props}>
+    <h3 className={cn("font-display text-lg leading-tight text-balance", className)} {...props}>
       {children}
     </h3>
   );
