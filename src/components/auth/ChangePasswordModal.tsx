@@ -108,7 +108,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
             }}
             disabled={loading}
           >
-            {loading ? "Updating..." : "Update Password"}
+            {loading ? "Saving…" : "Save password"}
           </Button>
         </div>
       </form>
