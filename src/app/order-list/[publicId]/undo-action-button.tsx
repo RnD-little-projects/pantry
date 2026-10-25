@@ -46,7 +46,7 @@ export function UndoActionButton({ publicId, auditLogId }: UndoActionButtonProps
     <button
       onClick={handleUndo}
       disabled={isUndoing}
-      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 disabled:opacity-50 transition-colors mt-1"
+      className="mt-1 inline-flex items-center gap-1 rounded-full py-1 text-sm font-semibold text-primary transition-colors hover:text-primary/80 disabled:opacity-50"
     >
       {isUndoing ? (
         <Loader2 className="h-3 w-3 animate-spin" />

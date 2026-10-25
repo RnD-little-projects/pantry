@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { PantryLayout } from "@/components/pantry-layout";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PublicShareToggle } from "@/components/public-share-toggle";
 import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
@@ -34,7 +34,7 @@ function getFirstParam(value: string | string[] | undefined) {
 export default async function SessionPage({ params, searchParams }: Readonly<SessionPageProps>) {
   const session = await auth();
   const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
-  
+
   const publicId = resolvedParams.publicId || "demo-share-link";
   const role = getFirstParam(resolvedSearchParams.role) || "viewer";
   const canPrice = role === "cashier";
@@ -66,229 +66,172 @@ export default async function SessionPage({ params, searchParams }: Readonly<Ses
 
   let accessLabel = "Read only";
   if (isCreator) {
-    accessLabel = isArchived ? "Archived (View Only)" : "Author edit";
+    accessLabel = isArchived ? "Archived (view only)" : "You can edit";
   } else if (canPrice) {
     accessLabel = "Cashier pricing";
   }
 
+  const canEdit = isCreator && !isArchived;
+  const pendingCount = order.items.filter((entry) => entry.unitPrice === null).length;
+
   return (
     <PantryLayout active="overview" showSidebar={showSidebar} sessions={sessions} marketItems={marketItems} userRole={(session?.user as Record<string, unknown>)?.role as string | undefined} user={session?.user as any}>
-      <div className="space-y-6">
-        <div className="px-4 sm:px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">{order.title}</h1>
-                {isArchived && <Badge variant="secondary" className="gap-1.5 h-6"><Archive className="h-3 w-3" /> Locked</Badge>}
-              </div>
-              <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                Created {order.createdAtLabel} 
-                {isArchived && order.archivedAtLabel && ` • Archived ${order.archivedAtLabel}`}
-              </p>
-            </div>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="min-w-0 space-y-5">
+          <header className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              {isCreator && !isArchived && <ArchiveOrderDialog publicId={publicId} orderTitle={order.title} />}
-              {order.paymentMethod === "cash" && <Badge variant="secondary" className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider">Paid in Cash</Badge>}
-              <Badge variant={isCreator ? "default" : "secondary"} className="rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider">{accessLabel}</Badge>
+              <h1 className="font-display min-w-0 break-words text-2xl text-balance sm:text-3xl">{order.title}</h1>
+              {isArchived && <Badge variant="secondary"><Archive aria-hidden="true" className="h-3 w-3" /> Locked</Badge>}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {order.items.length} {order.items.length === 1 ? "item" : "items"}
+              {pendingCount > 0 && `, ${pendingCount} waiting for a price`}
+              <span className="block text-xs">
+                Created {order.createdAtLabel}
+                {isArchived && order.archivedAtLabel && `, archived ${order.archivedAtLabel}`}
+              </span>
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant={isCreator ? "default" : "secondary"}>{accessLabel}</Badge>
+              {order.paymentMethod === "cash" && <Badge variant="success">Paid in cash</Badge>}
               {session && <PublicShareToggle publicId={publicId} isPublic={order.isPublic} />}
               <ActivityLogMobileModal historyItems={historyItems} isCreator={isCreator} isAdmin={session?.user?.role === "admin"} publicId={publicId} />
+              {canEdit && <div className="ml-auto"><ArchiveOrderDialog publicId={publicId} orderTitle={order.title} /></div>}
             </div>
-          </div>
-        </div>
+          </header>
 
-        {order.receiptUrl && (
-          <div className="px-4 sm:px-6">
-            <div className="overflow-hidden rounded-2xl border border-border/40 bg-card/30 backdrop-blur-sm p-4">
-              <div className="flex items-center gap-2 mb-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                <ImageIcon className="h-3 w-3" /> Receipt Attachment
+          {order.receiptUrl && (
+            <section aria-label="Receipt" className="flex items-center gap-4 rounded-sheet border border-border bg-card p-3">
+              <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-control bg-muted">
+                <Image src={order.receiptUrl} alt="Receipt photo" fill unoptimized className="object-cover" />
               </div>
-              <div className="relative aspect-video max-w-sm overflow-hidden rounded-xl border border-border/60 bg-muted/20 shadow-inner group">
-                <Image 
-                  src={order.receiptUrl} 
-                  alt="Receipt" 
-                  fill
-                  unoptimized
-                  className="object-cover transition-transform group-hover:scale-105" 
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                   <a 
-                     href={order.receiptUrl} 
-                     target="_blank" 
-                     rel="noopener noreferrer"
-                     className="inline-flex items-center justify-center h-9 px-3 text-xs font-medium rounded-2xl bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
-                   >
-                     View Full Image
-                   </a>
-                </div>
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-sm font-semibold"><ImageIcon aria-hidden="true" className="h-4 w-4 text-primary" /> Receipt</p>
+                <a href={order.receiptUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-sm font-semibold text-primary underline underline-offset-4">
+                  View full image
+                </a>
               </div>
-            </div>
-          </div>
-        )}
+            </section>
+          )}
 
-        <div className="px-4 sm:px-6">
-          <div className="grid gap-8 lg:grid-cols-[1fr_280px]">
-            {/* Left Column: Main Order Content */}
-            <div className="space-y-6">
-            {/* ── Mobile Card Layout (< sm) ── */}
-            <div className="sm:hidden space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto custom-scrollbar pr-1">
-              {/* Item Composer - Only show to creator if not archived */}
-              {isCreator && !isArchived && (
-                // No overflow-hidden: it clipped the suggestion dropdown. z-10 keeps it above the item cards.
-                <div className="relative z-10 rounded-2xl border border-border/50 bg-card/30 backdrop-blur-md shadow-sm">
-                  <table className="w-full"><tbody>
-                    <OrderItemComposer publicId={publicId} marketItems={marketItems} />
-                  </tbody></table>
-                </div>
-              )}
-
-              {order.items.map((entry, index) => (
-                <div
-                  key={entry.id ?? `${entry.itemName}-${index}`}
-                  className="group relative overflow-hidden rounded-2xl border border-border/30 bg-card/40 backdrop-blur-md transition-colors hover:border-primary/30"
-                >
-                  {/* Item name row */}
-                  <div className="flex items-center justify-between gap-2 border-b border-border/20 px-4 py-3">
-                    <span className={cn(
-                      "text-[13px] font-semibold text-foreground/90 truncate",
-                      isArchived && "text-muted-foreground/50 line-through"
-                    )}>
-                      {entry.itemName}
-                    </span>
-                    {isCreator && !isArchived && (
-                      <DeleteItemButton publicId={publicId} itemIndex={index} itemName={entry.itemName} />
-                    )}
-                  </div>
-                  {/* Stats grid */}
-                  <div className="grid grid-cols-3 divide-x divide-border/20">
-                    <div className="flex flex-col items-center gap-0.5 py-2.5 px-2">
-                      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">Qty</span>
-                      <EditableQuantityCell
-                        publicId={publicId}
-                        itemIndex={index}
-                        quantityLabel={entry.quantityLabel}
-                        isCreator={isCreator && !isArchived}
-                        variant="inline"
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-0.5 py-2.5 px-2">
-                      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">Price</span>
-                      <span className="font-mono text-[12px] text-muted-foreground/70">
-                        {entry.unitPrice === null ? <span className="opacity-30 italic text-[11px]">--</span> : `₱${entry.unitPrice}`}
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-0.5 py-2.5 px-2">
-                      <span className="text-[8px] font-black uppercase tracking-[0.25em] text-muted-foreground/50">Total</span>
-                      <span className="font-mono text-[13px] font-bold text-foreground/90">₱{entry.lineTotal}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Grand total card */}
-              <div className="flex items-center justify-between rounded-2xl border border-primary/20 bg-primary/[0.04] px-5 py-4 backdrop-blur-md">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/80">Grand Total</span>
-                <span className="text-xl font-black tracking-tight text-primary">₱{order.total}</span>
+          {/* The crate: one sheet holding the composer and the items */}
+          <section aria-label="Items" className="rounded-sheet border border-border bg-card">
+            {canEdit && (
+              // No overflow-hidden here: it would clip the suggestion dropdown.
+              <div className="relative z-10 border-b border-border p-3 sm:p-4">
+                <table className="w-full"><tbody>
+                  <OrderItemComposer publicId={publicId} marketItems={marketItems} />
+                </tbody></table>
               </div>
-            </div>
+            )}
 
-            {/* ── Desktop Table Layout (≥ sm) ── */}
-            <div className="hidden sm:block overflow-hidden rounded-2xl border border-border/50 bg-card/30 backdrop-blur-md shadow-sm">
-              <Table containerClassName="max-h-[calc(100vh-16rem)] custom-scrollbar">
-                <TableHeader className="sticky top-0 z-20 bg-card/95 backdrop-blur-md shadow-sm">
-                  <TableRow className="border-b border-border/40 hover:bg-transparent">
-                    <TableHead className="pl-6 w-[45%] text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Item Name</TableHead>
-                    <TableHead className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Qty</TableHead>
-                    <TableHead className="text-center text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">Price</TableHead>
-                    <TableHead className="text-right text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 pr-6">Total</TableHead>
-                    {isCreator && <TableHead className="w-[50px]"></TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* Item Composer - Only show to creator if not archived */}
-                  {isCreator && !isArchived && <OrderItemComposer publicId={publicId} marketItems={marketItems} />}
-                  
+            {order.items.length === 0 ? (
+              <p className="px-5 py-12 text-center text-sm text-muted-foreground">
+                {canEdit ? "Your list is empty. Add your first item above." : "No items on this list yet."}
+              </p>
+            ) : (
+              <>
+                {/* Phones: stacked rows */}
+                <ul className="divide-y divide-border sm:hidden">
                   {order.items.map((entry, index) => (
-                    <TableRow key={entry.id ?? `${entry.itemName}-${index}`} className="group border-b border-border/10 transition-colors hover:bg-primary/5">
-                      <TableCell className="py-3.5 pl-6 font-semibold text-[13px] text-foreground/90">
-                        <span className={cn(isArchived ? "text-muted-foreground/50 line-through" : "")}>{entry.itemName}</span>
-                      </TableCell>
-                      <EditableQuantityCell 
-                        publicId={publicId} 
-                        itemIndex={index} 
-                        quantityLabel={entry.quantityLabel} 
-                        isCreator={isCreator && !isArchived} 
-                      />
-                      <TableCell className="py-3.5 text-center font-mono text-[11px] text-muted-foreground/60">
-                        {entry.unitPrice === null ? <span className="opacity-20 italic">--</span> : `₱${entry.unitPrice}`}
-                      </TableCell>
-                      <TableCell className="py-3.5 text-right font-mono text-[12px] font-bold text-foreground/80 pr-6">
-                        ₱{entry.lineTotal}
-                      </TableCell>
-                      {isCreator && (
-                        <TableCell className="py-3.5 pr-2 text-right">
-                          {!isArchived && <DeleteItemButton publicId={publicId} itemIndex={index} itemName={entry.itemName} />}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter className="sticky bottom-0 z-20 bg-card/95 backdrop-blur-md border-t-2 border-border/40 shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={3} className="py-4 pl-6 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/80">
-                      Grand total
-                    </TableCell>
-                    <TableCell className="py-4 pr-6 text-right">
-                      <span className="text-lg font-black tracking-tight text-primary">₱{order.total}</span>
-                    </TableCell>
-                    {isCreator && <TableCell />}
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </div>
-          </div>
-
-          {/* Right Column: Compact History */}
-          <aside className="hidden lg:flex flex-col space-y-6 sticky top-8 h-[calc(100vh-8rem)] border-l border-border/30 pl-8">
-            <div className="flex flex-col h-full space-y-6">
-              <div className="flex items-center justify-between shrink-0">
-                <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/80">Activity Log</h2>
-                <Badge variant="outline" className="text-[9px] opacity-60">Realtime</Badge>
-              </div>
-
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                <div className="relative space-y-8 pb-4 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-border/50">
-                  {historyItems.map((entry) => (
-                    <div key={entry.id} className="relative pl-7 transition-all hover:translate-x-1">
-                      <div className="absolute left-0 top-1.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-primary ring-4 ring-primary/10 shadow-sm" />
-                      
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[13px] font-semibold text-foreground leading-none">{entry.action}</span>
-                          <span className="text-[10px] font-medium text-muted-foreground/60 whitespace-nowrap">{entry.date}</span>
+                    <li key={entry.id ?? `${entry.itemName}-${index}`} className="px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className={cn("break-words font-semibold", isArchived && "text-muted-foreground line-through")}>{entry.itemName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.unitPrice === null ? "Waiting for price" : `₱${entry.unitPrice} each`}
+                          </p>
                         </div>
-                        <div className="text-[12px] text-muted-foreground/80">
-                          <span className="font-medium text-foreground/70">{entry.item}</span>
-                          <span className="mx-1.5 opacity-30">•</span>
-                          <span>{entry.quantity}</span>
-                        </div>
-                        {(entry.isAdminRemove ? session?.user?.role === "admin" : isCreator) && entry.rawAction === "item_remove" && (
-                          <UndoActionButton publicId={publicId} auditLogId={entry.id} />
-                        )}
+                        <span className={cn("sticker mt-0.5 text-sm", entry.unitPrice === null && "sticker-empty")}>
+                          {entry.unitPrice === null ? <span aria-label="No price yet">—</span> : `₱${entry.lineTotal}`}
+                        </span>
                       </div>
-                    </div>
+                      <div className="mt-3 flex items-center justify-between gap-3">
+                        <EditableQuantityCell publicId={publicId} itemIndex={index} quantityLabel={entry.quantityLabel} isCreator={canEdit} variant="inline" />
+                        {canEdit && <DeleteItemButton publicId={publicId} itemIndex={index} itemName={entry.itemName} />}
+                      </div>
+                    </li>
                   ))}
-                  {historyItems.length === 0 && (
-                    <div className="py-10 text-center">
-                      <p className="text-xs text-muted-foreground italic">No history yet.</p>
-                    </div>
-                  )}
+                </ul>
+
+                {/* Tablet and up: table */}
+                <div className="hidden sm:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="pl-6">Item</TableHead>
+                        <TableHead className="text-center">Quantity</TableHead>
+                        <TableHead className="text-right">Each</TableHead>
+                        <TableHead className="pr-6 text-right">Total</TableHead>
+                        {isCreator && <TableHead className="w-12"><span className="sr-only">Remove</span></TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {order.items.map((entry, index) => (
+                        <TableRow key={entry.id ?? `${entry.itemName}-${index}`} className="group">
+                          <TableCell className="pl-6 font-semibold">
+                            <span className={cn(isArchived && "text-muted-foreground line-through")}>{entry.itemName}</span>
+                          </TableCell>
+                          <EditableQuantityCell publicId={publicId} itemIndex={index} quantityLabel={entry.quantityLabel} isCreator={canEdit} />
+                          <TableCell className="text-right text-muted-foreground">
+                            {entry.unitPrice === null ? "—" : `₱${entry.unitPrice}`}
+                          </TableCell>
+                          <TableCell className="pr-6 text-right">
+                            <span className={cn("sticker text-sm", entry.unitPrice === null && "sticker-empty")}>
+                              {entry.unitPrice === null ? <span aria-label="No price yet">—</span> : `₱${entry.lineTotal}`}
+                            </span>
+                          </TableCell>
+                          {isCreator && (
+                            <TableCell className="pr-3 text-right">
+                              {!isArchived && <DeleteItemButton publicId={publicId} itemIndex={index} itemName={entry.itemName} />}
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-              </div>
-            </div>
-          </aside>
+              </>
+            )}
+          </section>
+
+          {/* Sticky total bar, always within thumb reach */}
+          <div className="sticky bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-4 rounded-sheet bg-highlight px-5 py-3.5 text-highlight-foreground">
+            <span className="font-semibold">
+              Total
+              {pendingCount > 0 && <span className="block text-xs font-medium opacity-80">{pendingCount} still unpriced</span>}
+            </span>
+            <span className="font-display text-2xl sm:text-3xl" aria-live="polite">₱{order.total}</span>
+          </div>
         </div>
+
+        {/* Activity log (desktop; phones use ActivityLogMobileModal) */}
+        <aside className="sticky top-8 hidden h-[calc(100dvh-4rem)] flex-col lg:flex">
+          <h2 className="font-display shrink-0 text-lg">Activity</h2>
+          <div className="mt-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+            <ol className="relative space-y-6 pb-4 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-border">
+              {historyItems.map((entry) => (
+                <li key={entry.id} className="relative pl-6">
+                  <span aria-hidden="true" className="absolute left-0 top-1 h-[11px] w-[11px] rounded-full border-2 border-background bg-primary" />
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-semibold">{entry.action}</span>
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{entry.date}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="text-foreground">{entry.item}</span>, {entry.quantity}
+                  </p>
+                  {(entry.isAdminRemove ? session?.user?.role === "admin" : isCreator) && entry.rawAction === "item_remove" && (
+                    <UndoActionButton publicId={publicId} auditLogId={entry.id} />
+                  )}
+                </li>
+              ))}
+            </ol>
+            {historyItems.length === 0 && (
+              <p className="py-10 text-center text-sm text-muted-foreground">Changes to this list show up here.</p>
+            )}
+          </div>
+        </aside>
       </div>
-    </div>
     </PantryLayout>
   );
 }

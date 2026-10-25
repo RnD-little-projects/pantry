@@ -163,14 +163,14 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
     <>
       <Button variant="outline" size="sm" className="gap-2" onClick={() => setOpen(true)}>
         <Archive className="h-4 w-4" />
-        Archive Order
+        Archive
       </Button>
 
       <Dialog 
         open={open} 
         onOpenChange={setOpen}
-        title="Archive Order"
-        description="Archiving will lock the order and prevent any further items from being added."
+        title="Archive this order?"
+        description="The list gets locked and prices are frozen. You can still view it, but you can’t add or change items."
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)} disabled={isArchiving}>
@@ -178,16 +178,16 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
             </Button>
             <Button variant="destructive" onClick={handleArchive} disabled={isArchiving} className="gap-2">
               {isArchiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
-              Confirm Archive
+              Archive order
             </Button>
           </>
         }
       >
         <div className="grid gap-4 py-2">
-          <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+          <label className="flex cursor-pointer items-center gap-3 rounded-control bg-muted px-3 py-3 text-sm font-semibold">
             <input
               type="checkbox"
-              className="h-4 w-4 accent-primary"
+              className="h-5 w-5 accent-primary"
               checked={paidInCash}
               onChange={(e) => setPaidInCash(e.target.checked)}
             />
@@ -196,18 +196,18 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
 
           {!paidInCash && (
           <div className="grid gap-2">
-            <Label>Receipt Proof</Label>
+            <Label>Receipt</Label>
             
             {!previewUrl ? (
               <div className="grid gap-4">
                 <div 
-                  className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border/60 bg-muted/20 py-8 transition-colors hover:bg-muted/30 cursor-pointer"
+                  className="flex flex-col items-center justify-center gap-2 rounded-control border-2 border-dashed border-input bg-muted/50 py-8 transition-colors hover:border-primary hover:bg-accent cursor-pointer"
                   onClick={() => document.getElementById("receipt-file")?.click()}
                 >
                   <Camera className="h-8 w-8 text-muted-foreground" />
                   <div className="text-center">
                     <p className="text-sm font-medium">Upload receipt image</p>
-                    <p className="text-[10px] text-muted-foreground">Click to browse or paste an image</p>
+                    <p className="text-xs text-muted-foreground">Tap to choose a photo, or paste one</p>
                   </div>
                   <input
                     id="receipt-file"
@@ -220,10 +220,10 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/40" />
+                    <span className="w-full border-t border-border" />
                   </div>
-                  <div className="relative flex justify-center text-[10px] uppercase tracking-widest">
-                    <span className="bg-card px-2 text-muted-foreground">or use URL</span>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="bg-card px-2 text-muted-foreground">or paste a link</span>
                   </div>
                 </div>
 
@@ -238,13 +238,13 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
                       setPreviewUrl(null);
                     }}
                   />
-                  <p className="text-[10px] text-muted-foreground italic">
+                  <p className="text-xs text-muted-foreground">
                     Paste a link to your receipt image or photo.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="relative aspect-video overflow-hidden rounded-xl border border-border/60 bg-muted/20">
+              <div className="relative aspect-video overflow-hidden rounded-control border border-border bg-muted">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={previewUrl} 
@@ -254,7 +254,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  className="absolute bottom-2 right-2 h-7 text-[10px]"
+                  className="absolute bottom-2 right-2"
                   onClick={() => {
                     setReceiptFile(null);
                     setPreviewUrl(null);

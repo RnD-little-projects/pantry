@@ -102,9 +102,12 @@ html.light {
   color-scheme: light;
 }
 
-* {
-  box-sizing: border-box;
-  border-color: hsl(var(--border));
+/* In a layer so border-color utilities (border-transparent, border-primary...) can override it */
+@layer base {
+  * {
+    box-sizing: border-box;
+    border-color: hsl(var(--border));
+  }
 }
 
 body {

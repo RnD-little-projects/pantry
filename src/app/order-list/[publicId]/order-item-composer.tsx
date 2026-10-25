@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import type { MarketItem } from "@/lib/pantry-types";
 
 
@@ -17,7 +18,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
   const [itemName, setItemName] = useState("");
   const [quantityLabel, setQuantityLabel] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [, setMessage] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [autosaveTrigger, setAutosaveTrigger] = useState(0);
 
@@ -90,7 +91,8 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
 
   const handleAutosave = async () => {
     const payload = buildPayload(itemName, quantityLabel);
-    if (!payload.trim()) {
+    // payload is "name|qty", so it is never empty; check the fields themselves
+    if (!itemName.trim() && !quantityLabel.trim()) {
       return;
     }
 
@@ -202,28 +204,42 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     quantityLabelRef.current?.focus();
   };
 
+  // Enter in either field, or the Add button, saves right away instead of waiting for autosave
+  const handleEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      setShowSuggestions(false);
+      handleAutosave();
+    }
+  };
+
+  const fieldClass = "h-11 w-full rounded-control border border-input bg-background px-3.5 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30 sm:text-sm";
+
   return (
-    <tr className="bg-muted/40">
-      <td className="p-0 relative sticky left-0 z-10 bg-muted/40 backdrop-blur-sm shadow-[1px_0_0_0_rgba(255,255,255,0.05)]">
+    <tr>
+      <td className="relative p-0 pr-2 align-top">
         <input
           ref={itemNameRef}
           value={itemName}
           onChange={handleChange(setItemName)}
           onBlur={handleFocusOutside}
           onFocus={() => setShowSuggestions(true)}
-          placeholder="Add item name"
+          onKeyDown={handleEnter}
+          aria-label="Item name"
+          placeholder="Add an item…"
           autoComplete="off"
-          className="w-full border-0 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0"
+          enterKeyHint="done"
+          className={fieldClass}
         />
-        
+
         {/* Autocomplete Dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-lg backdrop-blur-xl">
+          <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden rounded-control border border-border bg-popover animate-fade">
             {suggestions.map((item) => (
               <button
                 key={item.id}
                 type="button"
-                className="flex w-full flex-col items-start px-4 py-2 text-left hover:bg-muted/80 transition-colors cursor-pointer"
+                className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted"
                 onMouseDown={(e) => {
                   e.preventDefault();
                   selectSuggestion(item);
@@ -233,8 +249,8 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
                   selectSuggestion(item);
                 }}
               >
-                <span className="text-sm font-medium text-foreground">{item.name}</span>
-                <span className="text-[10px] text-muted-foreground">{item.price} • {item.note}</span>
+                <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.name}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">{item.price}</span>
               </button>
             ))}
           </div>
@@ -242,27 +258,48 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
 
         {/* Autocorrect Warning */}
         {autocorrectInfo && (
-          <div className="absolute left-4 top-[calc(100%+4px)] z-[101] flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-medium text-primary border border-primary/20 backdrop-blur-md">
-            <span>✨ Will autocorrect to: <strong>{autocorrectInfo.original}</strong></span>
+          <div className="absolute left-2 top-[calc(100%+4px)] z-[101] rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
+            Will be saved as <strong>{autocorrectInfo.original}</strong>
           </div>
         )}
+
+        {status === "error" && message && (
+          <p role="alert" className="mt-1.5 text-xs font-medium text-destructive">{message}</p>
+        )}
       </td>
-      <td className="p-0">
+      <td className="w-16 p-0 pr-2 align-top sm:w-20">
         <input
           ref={quantityLabelRef}
           type="number"
+          inputMode="numeric"
+          aria-label="Quantity"
           value={quantityLabel}
           onChange={handleChange(setQuantityLabel)}
           onBlur={handleFocusOutside}
-          placeholder="0"
-          className="w-full border-0 bg-transparent px-2 py-3 text-center text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 no-spinner"
+          onKeyDown={handleEnter}
+          placeholder="Qty"
+          className={`${fieldClass} no-spinner px-2 text-center`}
         />
       </td>
-      <td className="text-muted-foreground">&nbsp;</td>
-      <td className="text-right text-xs uppercase tracking-[0.22em] text-muted-foreground pr-4">
-        {status === "saved" ? "Saved" : status === "saving" ? "Saving..." : status === "error" ? "Error" : ""}
+      <td className="w-px p-0 align-top">
+        <button
+          type="button"
+          // Keep focus in the fields so blur-autosave doesn't race this click
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setShowSuggestions(false);
+            handleAutosave();
+          }}
+          disabled={status === "saving"}
+          className="inline-flex h-11 touch-manipulation items-center gap-1.5 rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <Plus aria-hidden="true" className="h-4 w-4" />
+          <span className="max-sm:sr-only">{status === "saving" ? "Adding…" : "Add"}</span>
+        </button>
+        <span className="sr-only" aria-live="polite">
+          {status === "saved" ? "Item added" : status === "saving" ? "Adding item" : ""}
+        </span>
       </td>
-      <td>&nbsp;</td>
     </tr>
   );
 }

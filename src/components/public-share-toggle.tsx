@@ -40,12 +40,12 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative flex h-8 items-center rounded-full bg-muted/30 p-1 border border-border">
+      <div className="relative flex h-10 items-center rounded-full bg-muted p-1">
         {/* Sliding Background */}
         <div 
           className={cn(
-            "absolute h-6 w-[70px] rounded-full bg-primary transition-all duration-300 ease-in-out",
-            isPublic ? "left-[76px]" : "left-1"
+            "absolute h-8 w-[70px] rounded-full bg-primary transition-[left] duration-200 ease-out motion-reduce:transition-none",
+            isPublic ? "left-[74px]" : "left-1"
           )}
         />
         
@@ -53,8 +53,9 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
           type="button"
           disabled={pending}
           onClick={() => handleToggle(false)}
+          aria-pressed={!isPublic}
           className={cn(
-            "relative z-10 w-[70px] px-2 text-xs font-bold transition-colors duration-200",
+            "relative z-10 h-8 w-[70px] rounded-full px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             !isPublic ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -65,8 +66,9 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
           type="button"
           disabled={pending}
           onClick={() => handleToggle(true)}
+          aria-pressed={isPublic}
           className={cn(
-            "relative z-10 w-[70px] px-2 text-xs font-bold transition-colors duration-200",
+            "relative z-10 h-8 w-[70px] rounded-full px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             isPublic ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -83,10 +85,10 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
       {isPublic && (
         <div className={cn(
-          "text-xs font-bold transition-all duration-300 overflow-hidden whitespace-nowrap",
-          copied ? "w-16 opacity-100" : "w-0 opacity-0"
+          "overflow-hidden whitespace-nowrap text-sm font-semibold transition-[width,opacity] duration-200",
+          copied ? "w-24 opacity-100" : "w-0 opacity-0"
         )}>
-          <span className="text-primary">Copied!</span>
+          <span className="text-primary" aria-live="polite">Link copied</span>
         </div>
       )}
     </div>

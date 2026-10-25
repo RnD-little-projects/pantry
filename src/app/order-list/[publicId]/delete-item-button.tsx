@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2, AlertTriangle } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 
 import { useToast } from "@/components/ui/toast";
 import { Dialog } from "@/components/ui/dialog";
@@ -53,42 +53,34 @@ export function DeleteItemButton({ publicId, itemIndex, itemName = "this item" }
       <Button
         variant="ghost"
         size="icon"
-        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+        className="h-10 w-10 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
         onClick={() => setShowConfirm(true)}
         disabled={isDeleting}
+        aria-label={`Remove ${itemName}`}
       >
         {isDeleting ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
         ) : (
-          <Trash2 className="h-4 w-4" />
+          <Trash2 aria-hidden="true" className="h-4 w-4" />
         )}
       </Button>
 
       <Dialog
         open={showConfirm}
         onOpenChange={setShowConfirm}
-        title="Delete Item"
-        description={`Are you sure you want to remove "${itemName}" from the list? This action can be undone from the activity log.`}
+        title={`Remove ${itemName}?`}
+        description="You can bring it back from the activity log."
         footer={
           <>
             <Button variant="outline" onClick={() => setShowConfirm(false)}>
-              Cancel
+              Keep it
             </Button>
-            <Button 
-              variant="default" 
-              className="bg-destructive text-white hover:bg-destructive/90" 
-              onClick={handleDelete}
-            >
-              Delete Item
+            <Button variant="destructive" onClick={handleDelete}>
+              Remove item
             </Button>
           </>
         }
-      >
-        <div className="flex items-center gap-3 rounded-2xl bg-destructive/10 p-4 text-destructive border border-destructive/20">
-          <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-          <p className="text-sm font-medium leading-tight">This item will be removed from your order.</p>
-        </div>
-      </Dialog>
+      />
     </>
   );
 }

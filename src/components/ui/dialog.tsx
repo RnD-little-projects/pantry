@@ -74,7 +74,7 @@ export function Dialog({
           </p>
         )}
         
-        <div className="mb-8">{children}</div>
+        {children && <div className="mb-8">{children}</div>}
         
         {footer && (
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
