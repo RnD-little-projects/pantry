@@ -22,16 +22,16 @@ export default async function MarketListPage() {
   return (
     <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
       <Card>
-        <CardHeader className="border-b border-border/60">
+        <CardHeader className="border-b border-border">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <CardTitle>Current market list</CardTitle>
-              <CardDescription>Track price, freshness, and storage status.</CardDescription>
+              <CardTitle className="text-2xl">Market prices</CardTitle>
+              <CardDescription>What each item costs today.</CardDescription>
             </div>
-            <Badge variant="secondary">{marketItems.length} rows</Badge>
+            <Badge variant="secondary">{marketItems.length} items</Badge>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0 pb-2">
           <Table>
             <TableHeader>
               <TableRow>
@@ -46,11 +46,11 @@ export default async function MarketListPage() {
               {marketItems.map((item) => (
                 <TableRow key={item.id ?? item.name}>
                   <TableCell>
-                    <div className="font-medium text-foreground">{item.name}</div>
+                    <div className="font-semibold text-foreground">{item.name}</div>
                   </TableCell>
-                  <TableCell className="font-mono text-muted-foreground">{item.price}</TableCell>
+                  <TableCell><span className={item.price === "Pending" ? "sticker sticker-empty text-sm" : "sticker text-sm"}>{item.price}</span></TableCell>
                   <TableCell>
-                    <Badge variant={item.status === "Active" ? "default" : "secondary"}>{item.status}</Badge>
+                    <Badge variant={item.status === "Active" ? "success" : "secondary"}>{item.status}</Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">{item.note}</TableCell>
                   <TableCell className="text-right">
