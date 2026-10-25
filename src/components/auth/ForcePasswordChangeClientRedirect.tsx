@@ -32,7 +32,7 @@ export default function ForcePasswordChangeClientRedirect() {
       return (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-background text-foreground">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent mb-4"></div>
-          <p className="text-muted-foreground">Redirecting to security update...</p>
+          <p className="text-muted-foreground">Redirecting to security update…</p>
         </div>
       );
     }

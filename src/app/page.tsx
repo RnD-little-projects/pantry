@@ -113,7 +113,6 @@ export default async function Home() {
                 list="market-item-names"
                 autoComplete="off"
                 required
-                autoFocus
               />
               <datalist id="market-item-names">
                 {marketItems.map((item) => (

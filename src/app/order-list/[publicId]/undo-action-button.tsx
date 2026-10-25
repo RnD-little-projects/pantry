@@ -18,7 +18,7 @@ export function UndoActionButton({ publicId, auditLogId }: UndoActionButtonProps
 
   const handleUndo = async () => {
     setIsUndoing(true);
-    const loadingId = toast("Restoring item...", "loading");
+    const loadingId = toast("Restoring item…", "loading");
 
     try {
       const response = await fetch("/api/order-list/undo-item", {

@@ -93,7 +93,7 @@ export function AccountMenu({
           )}
         </span>
         <div className={cn(
-          "overflow-hidden transition-all duration-300",
+          "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
           collapsed ? "w-0 opacity-0" : "w-[140px] opacity-100"
         )}>
           <div className="w-[140px] flex items-center justify-between pl-2">

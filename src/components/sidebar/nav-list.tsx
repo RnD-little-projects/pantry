@@ -18,7 +18,7 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
 
   return (
     <div className={cn(
-      "mt-4 transition-all duration-300 overflow-hidden",
+      "mt-4 overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
       collapsed ? "w-0 opacity-0 pointer-events-none" : "w-[188px] opacity-100"
     )}>
       <div className="w-[188px] space-y-3 px-1">

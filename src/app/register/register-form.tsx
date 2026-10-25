@@ -41,7 +41,7 @@ export function RegisterForm() {
       const result = await registerAction(formData);
 
       if (result?.success) {
-        toast("Account created successfully! Redirecting...", "success");
+        toast("Account created successfully! Redirecting…", "success");
         window.location.href = "/";
         return;
       }
@@ -137,7 +137,7 @@ export function RegisterForm() {
         className="w-full" 
         disabled={isLoading}
       >
-        {isLoading ? "Creating account..." : "Create account"}
+        {isLoading ? "Creating account…" : "Create account"}
       </Button>
     </form>
   );

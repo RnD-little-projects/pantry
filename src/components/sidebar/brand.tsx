@@ -14,7 +14,7 @@ export function ShellBrand({ collapsed, onToggle }: Readonly<BrandProps>) {
   return (
     <div className="relative flex w-full items-center">
       <div className={cn(
-        "overflow-hidden transition-all duration-300 ease-in-out",
+        "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
         collapsed ? "w-0 opacity-0" : "w-[140px] opacity-100"
       )}>
         <Link href="/" className="w-[140px] block hover:opacity-80 transition-opacity">

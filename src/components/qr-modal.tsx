@@ -93,7 +93,7 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-muted-foreground">Scanning images...</p>
+                <p className="text-xs text-muted-foreground">Scanning images…</p>
               </div>
             ) : error ? (
               <div className="text-center py-10">
@@ -109,10 +109,10 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
                   <button
                     key={filename}
                     onClick={() => setSelectedImage(filename)}
-                    className="group flex flex-col items-center gap-1.5 rounded-lg p-1.5 hover:bg-muted/30 transition-all duration-200 cursor-pointer"
+                    className="group flex flex-col items-center gap-1.5 rounded-lg p-1.5 hover:bg-muted/30 transition-[color,background-color,border-color,opacity,transform] duration-200 cursor-pointer"
                   >
                     {/* QR codes need a white quiet zone to scan, regardless of theme */}
-                    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-border bg-white p-1.5 transition-all duration-200 group-hover:scale-[1.04] group-hover:border-primary/40">
+                    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-border bg-white p-1.5 transition-[color,background-color,border-color,opacity,transform] duration-200 group-hover:scale-[1.04] group-hover:border-primary/40">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={`/assets/images/${filename}`} 

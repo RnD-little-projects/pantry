@@ -17,7 +17,7 @@ export function LoginForm() {
       const result = await signInAction(formData);
       
       if (result?.success) {
-        toast("Successfully signed in! Redirecting...", "success");
+        toast("Successfully signed in! Redirecting…", "success");
         window.location.href = "/";
         return;
       }

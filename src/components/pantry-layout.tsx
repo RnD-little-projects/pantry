@@ -130,10 +130,10 @@ export function PantryLayout({
             />
 
             {/* Navigation Area */}
-            <div className={cn("mt-5 flex-1 overflow-y-auto no-scrollbar pr-1 transition-all duration-300", collapsed && "pr-0")}>
+            <div className={cn("mt-5 flex-1 overflow-y-auto no-scrollbar pr-1", collapsed && "pr-0")}>
               {(userRole === "admin" || userRole === "cashier") ? (
                 <div className={cn(
-                  "overflow-hidden transition-all duration-300",
+                  "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
                   collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
                 )}>
                   <div className="w-[188px] space-y-3">
@@ -163,7 +163,7 @@ export function PantryLayout({
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <span className="truncate text-sm">User Orders</span>
+                        <span className="truncate text-sm">Orders</span>
                       </Link>
                       <Link
                         href="/admin/products"
@@ -175,7 +175,7 @@ export function PantryLayout({
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
-                        <span className="truncate text-sm">Item Management</span>
+                        <span className="truncate text-sm">Products</span>
                       </Link>
                       {userRole === "admin" && (
                         <>
@@ -189,7 +189,7 @@ export function PantryLayout({
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
-                            <span className="truncate text-sm">User Management</span>
+                            <span className="truncate text-sm">Users</span>
                           </Link>
                           <Link
                             href="/admin/audit-logs"
@@ -201,7 +201,7 @@ export function PantryLayout({
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
-                            <span className="truncate text-sm">Audit Logs</span>
+                            <span className="truncate text-sm">Audit log</span>
                           </Link>
                         </>
                       )}
@@ -211,7 +211,7 @@ export function PantryLayout({
               ) : (
                 <div onClick={() => setMobileMenuOpen(false)}>
                   <div className={cn(
-                    "overflow-hidden transition-all duration-300",
+                    "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
                     collapsed ? "w-0 opacity-0" : "w-[188px] opacity-100"
                   )}>
                     <div className="flex items-center justify-between mb-3">
@@ -248,7 +248,7 @@ export function PantryLayout({
                   </svg>
                 </div>
                 <div className={cn(
-                  "overflow-hidden transition-all duration-300",
+                  "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
                   collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
                 )}>
                   <div className="w-[155px] flex items-center pl-2">
@@ -268,7 +268,7 @@ export function PantryLayout({
               >
                 <ShoppingBasket aria-hidden="true" className="h-[18px] w-9 shrink-0 text-primary" />
                 <div className={cn(
-                  "overflow-hidden transition-all duration-300",
+                  "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
                   collapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
                 )}>
                   <div className="w-[155px] flex items-center pl-2">

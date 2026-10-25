@@ -116,7 +116,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
 
     inFlightPayloadRef.current = payload;
     setStatus("saving");
-    setMessage("Saving item...");
+    setMessage("Saving item…");
 
     try {
       const response = await fetch(`/api/order-list/add-item`, {
@@ -158,7 +158,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     }
 
     setStatus("idle");
-    setMessage("Autosaving in 10 seconds...");
+    setMessage("Autosaving in 10 seconds…");
 
     timerRef.current = window.setTimeout(() => {
       handleAutosave();
