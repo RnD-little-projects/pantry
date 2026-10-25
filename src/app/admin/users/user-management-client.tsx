@@ -143,17 +143,15 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">Manage your team, roles, and account statuses.</p>
-        </div>
+      <div className="flex flex-col justify-end gap-4 md:flex-row md:items-center">
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="relative min-w-0 flex-1">
+            <Search aria-hidden="true" className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search users..."
-              className="pl-9 w-[250px] bg-secondary/50 border-none focus-visible:ring-1"
+              type="search"
+              aria-label="Search users"
+              placeholder="Search users…"
+              className="pl-9 md:w-[260px]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -165,7 +163,7 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
+      <div className="rounded-control border bg-card overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-secondary/20 hover:bg-secondary/20">
@@ -198,18 +196,18 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">
-                    <Badge variant={user.isActive ? "outline" : "secondary"} className={user.isActive ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" : "text-destructive border-destructive/20 bg-destructive/5"}>
+                    <Badge variant={user.isActive ? "outline" : "secondary"} className={user.isActive ? "text-success border-success/25 bg-success/10" : "text-destructive border-destructive/20 bg-destructive/5"}>
                       {user.isActive ? "Active" : "Deactivated"}
                     </Badge>
                     {user.forcePasswordChange && (
-                      <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/5 text-[10px]">
+                      <Badge variant="outline" className="border-transparent bg-highlight/25 text-foreground">
                         Force PWD Change
                       </Badge>
                     )}
                   </div>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(user.createdAt).toLocaleDateString()}
+                  <time suppressHydrationWarning>{new Date(user.createdAt).toLocaleDateString()}</time>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -235,7 +233,7 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
                       title={user.isActive ? "Deactivate" : "Activate"}
                       onClick={() => handleToggleActive(user)}
                     >
-                      {user.isActive ? <UserMinus size={16} className="text-amber-500" /> : <UserCheck size={16} className="text-emerald-500" />}
+                      {user.isActive ? <UserMinus size={16} className="text-destructive" /> : <UserCheck size={16} className="text-success" />}
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -386,7 +384,7 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
               id="forcePasswordChange" 
               name="forcePasswordChange" 
               defaultChecked 
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary bg-background"
+              className="h-5 w-5 accent-primary"
             />
             <Label htmlFor="forcePasswordChange" className="text-sm font-normal cursor-pointer">
               Force user to change password on first login
