@@ -2,8 +2,6 @@ import { auth } from "@/auth";
 import { PantryLayout } from "../../components/pantry-layout";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table";
 import { getMarketItems, getOverviewSessions } from "../../lib/pantry-db";
 import { redirect } from "next/navigation";
 
@@ -21,49 +19,32 @@ export default async function MarketListPage() {
 
   return (
     <PantryLayout active="market" marketItems={marketItems} sessions={sessions} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
-      <Card>
-        <CardHeader className="border-b border-border">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <CardTitle className="text-2xl">Market prices</CardTitle>
-              <CardDescription>What each item costs today.</CardDescription>
-            </div>
-            <Badge variant="secondary">{marketItems.length} items</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 pb-2">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Note</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {marketItems.map((item) => (
-                <TableRow key={item.id ?? item.name}>
-                  <TableCell>
-                    <div className="font-semibold text-foreground">{item.name}</div>
-                  </TableCell>
-                  <TableCell><span className={item.price === "Pending" ? "sticker sticker-empty text-sm" : "sticker text-sm"}>{item.price}</span></TableCell>
-                  <TableCell>
-                    <Badge variant={item.status === "Active" ? "success" : "secondary"}>{item.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{item.note}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      Archive
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <section aria-label="Market prices" className="receipt mx-auto w-full max-w-2xl px-5 pb-6 pt-6 sm:px-8">
+        <header className="pb-4 text-center">
+          <h1 className="text-lg font-bold uppercase tracking-wide">Price list</h1>
+          <p className="mt-1 text-xs text-muted-foreground">What each item costs today, {marketItems.length} items</p>
+        </header>
+        <ul className="receipt-rule">
+          {marketItems.map((item) => (
+            <li key={item.id ?? item.name} className="border-b border-dotted border-border py-3 last:border-b-0">
+              <div className="flex items-baseline gap-2 text-[15px]">
+                <span className="font-semibold">{item.name}</span>
+                <span aria-hidden="true" className="min-w-4 flex-1 translate-y-[-4px] border-b border-dotted border-input" />
+                {item.price === "Pending" ? <span className="stamp">No price</span> : <span className="font-bold">{item.price}</span>}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-2">
+                  <Badge variant={item.status === "Active" ? "success" : "outline"}>{item.status}</Badge>
+                  {item.note}
+                </span>
+                <Button variant="outline" size="sm">
+                  Archive
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
     </PantryLayout>
   );
 }
