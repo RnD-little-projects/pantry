@@ -24,7 +24,7 @@ export default async function MarketListPage() {
           <p className="mt-1 text-xs text-muted-foreground">What each item costs today, {marketItems.length} items</p>
         </header>
         <ul className="receipt-rule">
-          {marketItems.map((item) => (
+          {marketItems.toSorted((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" })).map((item) => (
             <li key={item.id ?? item.name} className="border-b border-dotted border-border py-3 last:border-b-0">
               <div className="flex items-baseline gap-2 text-[15px]">
                 <span className="font-semibold">{item.name}</span>
