@@ -162,13 +162,13 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
   return (
     <>
       <Button variant="highlight" size="lg" className="w-full" onClick={() => setOpen(true)}>
-        Pay for the whole list
+        Pay
       </Button>
 
       <Dialog 
         open={open} 
         onOpenChange={setOpen}
-        title="Pay for the whole list?"
+        title="Pay and lock this list?"
         description="One payment covers every item. Attach a photo of the receipt, or mark it paid in cash. The list is then locked and its prices are frozen."
         footer={
           <>

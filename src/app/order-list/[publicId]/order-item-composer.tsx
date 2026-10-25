@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ChangeEvent, type Dispatch, type KeyboardEvent, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import type { MarketItem } from "@/lib/pantry-types";
+import { SuggestionList, type Suggestion } from "@/components/ui/suggestion-list";
 
 
 type OrderItemComposerProps = {
@@ -21,6 +22,8 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
   const [message, setMessage] = useState<string>("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [autosaveTrigger, setAutosaveTrigger] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const listId = useId();
 
   const timerRef = useRef<number | undefined>(undefined);
   const inFlightPayloadRef = useRef<string>("");
@@ -183,6 +186,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     setAutosaveTrigger(prev => prev + 1);
     if (setter === setItemName) {
       setShowSuggestions(true);
+      setActiveIndex(-1);
     }
   };
 
@@ -198,19 +202,49 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     }, 200);
   };
 
-  const selectSuggestion = (item: MarketItem) => {
+  const selectSuggestion = (item: Suggestion) => {
     setItemName(item.name);
     setShowSuggestions(false);
+    setActiveIndex(-1);
     quantityLabelRef.current?.focus();
   };
 
   // Enter in either field, or the Add button, saves right away instead of waiting for autosave
   const handleEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && listOpen && activeIndex >= 0) {
+      // Enter on a highlighted suggestion picks it instead of saving
+      event.preventDefault();
+      selectSuggestion(suggestionItems[activeIndex]);
+      return;
+    }
     if (event.key === "Enter") {
       event.preventDefault();
       setShowSuggestions(false);
       handleAutosave();
     }
+  };
+
+  const suggestionItems: Suggestion[] = suggestions.map((item, index) => ({
+    id: item.id ?? `${item.name}-${index}`,
+    name: item.name,
+    detail: item.price === "Pending" ? undefined : item.price,
+  }));
+  const listOpen = showSuggestions && suggestionItems.length > 0;
+
+  const handleNameKeys = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (listOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      event.preventDefault();
+      const step = event.key === "ArrowDown" ? 1 : -1;
+      setActiveIndex((index) => (index + step + suggestionItems.length) % suggestionItems.length);
+      return;
+    }
+    if (listOpen && event.key === "Escape") {
+      event.preventDefault();
+      setShowSuggestions(false);
+      setActiveIndex(-1);
+      return;
+    }
+    handleEnter(event);
   };
 
   const fieldClass = "h-11 w-full rounded-control border border-dashed border-input bg-transparent px-3 font-mono text-base text-card-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-solid focus:border-ring sm:text-sm";
@@ -224,7 +258,12 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
           onChange={handleChange(setItemName)}
           onBlur={handleFocusOutside}
           onFocus={() => setShowSuggestions(true)}
-          onKeyDown={handleEnter}
+          onKeyDown={handleNameKeys}
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={listOpen}
+          aria-controls={listOpen ? listId : undefined}
+          aria-activedescendant={listOpen && activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}
           aria-label="Item name"
           placeholder="+ add item…"
           autoComplete="off"
@@ -232,35 +271,15 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
           className={fieldClass}
         />
 
-        {/* Autocomplete Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden border border-input bg-popover font-mono animate-fade">
-            {suggestions.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="flex w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left transition-colors hover:bg-muted"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectSuggestion(item);
-                }}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  selectSuggestion(item);
-                }}
-              >
-                <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.name}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">{item.price}</span>
-              </button>
-            ))}
-          </div>
+        {listOpen && (
+          <SuggestionList id={listId} items={suggestionItems} activeIndex={activeIndex} onSelect={selectSuggestion} />
         )}
 
-        {/* Autocorrect Warning */}
+        {/* Shown under the field (not floating) so it never covers the suggestions */}
         {autocorrectInfo && (
-          <div className="absolute left-2 top-[calc(100%+4px)] z-[101] rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-            Will be saved as <strong>{autocorrectInfo.original}</strong>
-          </div>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Will be saved as <strong className="text-foreground">{autocorrectInfo.original}</strong>
+          </p>
         )}
 
         {status === "error" && message && (

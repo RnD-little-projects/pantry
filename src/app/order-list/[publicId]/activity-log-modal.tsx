@@ -5,7 +5,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 import { UndoActionButton } from "./undo-action-button";
-import { Clock } from "lucide-react";
+import { History } from "lucide-react";
 
 type HistoryItem = {
   id: string;
@@ -32,9 +32,15 @@ export function ActivityLogMobileModal({
 
   return (
     <div className="lg:hidden">
-      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="gap-2">
-        <Clock className="h-4 w-4" />
-        <span>Activity</span>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Activity"
+        title="Activity"
+        onClick={() => setOpen(true)}
+        className="-mr-2 text-band-foreground hover:bg-band-foreground/15"
+      >
+        <History aria-hidden="true" className="h-5 w-5" />
       </Button>
 
       <Dialog 
