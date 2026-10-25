@@ -140,7 +140,7 @@ export function ProductManager({
               onChange={(e) => setNewCategoryName(e.target.value)}
               placeholder="New category"
               aria-label="New category name"
-              className="h-11 min-w-0 flex-1 rounded-control border border-input bg-background px-3.5 text-base outline-none transition-colors focus:border-ring focus:ring-2 focus:ring-ring/30 sm:text-sm"
+              className="h-11 min-w-0 flex-1 rounded-control border border-dashed border-input bg-transparent px-3 text-base outline-none transition-colors placeholder:text-muted-foreground focus:border-solid focus:border-ring sm:text-sm"
             />
             <Button onClick={handleSaveCategory} className="shrink-0 whitespace-nowrap">Add category</Button>
           </div>
@@ -152,7 +152,7 @@ export function ProductManager({
         {[
           ...categoriesWithProducts, 
           { id: null, name: "Uncategorized", products: uncategorizedProducts },
-          { id: "no-price", name: "Needs Price", products: products.filter(p => p.price === null || p.price === undefined) }
+          { id: "no-price", name: "Needs a price", products: products.filter(p => p.price === null || p.price === undefined) }
         ].map((group, index) => (
           <Card 
             key={`${group.id || "uncategorized"}-${index}`} 
