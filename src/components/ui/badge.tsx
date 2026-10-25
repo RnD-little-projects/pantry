@@ -5,11 +5,11 @@ import { cn } from "../../lib/utils";
 type BadgeVariant = "default" | "secondary" | "outline" | "success" | "highlight";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "border-transparent bg-primary text-primary-foreground",
+  default: "border-current text-foreground",
   secondary: "border-transparent bg-secondary text-secondary-foreground",
-  outline: "border-border bg-transparent text-foreground",
-  success: "border-transparent bg-success/15 text-success",
-  highlight: "border-transparent bg-highlight/30 text-foreground",
+  outline: "border-border text-muted-foreground",
+  success: "border-current text-success",
+  highlight: "border-current text-highlight",
 };
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
@@ -20,7 +20,7 @@ export function Badge({ className, variant = "default", ...props }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+        "inline-flex items-center gap-1 border-2 px-1.5 py-px font-mono text-[11px] font-bold uppercase tracking-wide",
         variantClasses[variant],
         className,
       )}

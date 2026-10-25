@@ -40,11 +40,11 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
   return (
     <div className="flex items-center gap-2">
-      <div className="relative flex h-10 items-center rounded-full bg-muted p-1">
+      <div className="relative flex h-10 items-center rounded-control bg-muted p-1">
         {/* Sliding Background */}
         <div 
           className={cn(
-            "absolute h-8 w-[70px] rounded-full bg-primary transition-[left] duration-200 ease-out motion-reduce:transition-none",
+            "absolute h-8 w-[70px] rounded-control bg-primary transition-[left] duration-200 ease-out motion-reduce:transition-none",
             isPublic ? "left-[74px]" : "left-1"
           )}
         />
@@ -55,7 +55,7 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
           onClick={() => handleToggle(false)}
           aria-pressed={!isPublic}
           className={cn(
-            "relative z-10 h-8 w-[70px] rounded-full px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "relative z-10 h-8 w-[70px] rounded-control px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             !isPublic ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -68,7 +68,7 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
           onClick={() => handleToggle(true)}
           aria-pressed={isPublic}
           className={cn(
-            "relative z-10 h-8 w-[70px] rounded-full px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "relative z-10 h-8 w-[70px] rounded-control px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             isPublic ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -77,8 +77,8 @@ export function PublicShareToggle({ publicId, isPublic }: Readonly<{ publicId: s
 
         {/* Circular Loading Overlay */}
         {pending && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-full bg-background/20">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-control bg-background/20">
+            <div className="h-4 w-4 animate-spin rounded-control border-2 border-primary border-t-transparent" />
           </div>
         )}
       </div>

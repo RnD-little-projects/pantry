@@ -26,9 +26,9 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
           <div className="mb-3 border-b border-border pb-3">
             <Link
               href="/"
-              className="flex items-center gap-2 rounded-control px-2 py-2 text-sm font-semibold text-primary transition-colors hover:bg-accent"
+              className="flex items-center gap-2 rounded-control border-2 border-dashed border-input px-2 py-2 text-sm font-bold transition-colors hover:bg-card/60"
             >
-              <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-primary-foreground">
+              <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center text-base">
                 +
               </span>
               <span>New order</span>
@@ -47,12 +47,12 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
                 className={cn(
                   "block w-full rounded-control px-2 py-2 text-left transition-colors",
                   isActive
-                    ? "bg-accent font-semibold text-accent-foreground"
-                    : "text-foreground/70 hover:bg-muted hover:text-foreground",
+                    ? "bg-card font-bold text-card-foreground"
+                    : "text-foreground/75 hover:bg-card/60 hover:text-foreground",
                 )}
               >
                 <span className={cn(
-                  "block truncate text-sm",
+                  "block truncate font-mono text-[13px]",
                   session.status === "archived" && "text-muted-foreground line-through"
                 )}>
                   {session.title}

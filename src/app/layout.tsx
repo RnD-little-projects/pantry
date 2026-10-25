@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { Archivo } from "next/font/google";
+import { IBM_Plex_Mono, IBM_Plex_Sans_Condensed } from "next/font/google";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
-// Variable width axis powers the expanded display type (.font-display)
-const archivo = Archivo({
-  variable: "--font-archivo",
+const plexCondensed = IBM_Plex_Sans_Condensed({
+  variable: "--font-plex-condensed",
   subsets: ["latin"],
-  axes: ["wdth"],
+  weight: ["400", "500", "700"],
+});
+
+// Receipt lines are set in mono so prices line up like a printed tape
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -27,8 +33,8 @@ export const metadata: Metadata = {
 
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#EEF2FA" },
-    { media: "(prefers-color-scheme: dark)", color: "#0E1430" },
+    { media: "(prefers-color-scheme: light)", color: "#3A3936" },
+    { media: "(prefers-color-scheme: dark)", color: "#121110" },
   ],
 };
 
@@ -43,7 +49,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} h-full antialiased`}
+      className={`${plexCondensed.variable} ${plexMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head />

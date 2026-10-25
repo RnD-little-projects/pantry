@@ -116,7 +116,7 @@ export function PantryLayout({
         {showSidebar && (
           <aside
             className={cn(
-              "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col overflow-x-hidden border-r border-border bg-card py-5 transition-[transform,width] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:translate-x-0",
+              "fixed inset-y-0 left-0 z-50 flex h-dvh flex-col overflow-x-hidden border-r border-border bg-background py-5 lg:border-r-0 transition-[transform,width] duration-300 motion-reduce:transition-none lg:sticky lg:top-0 lg:translate-x-0",
               mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
               collapsed ? "w-[64px] px-2" : "w-[280px] sm:w-[320px] lg:w-[220px] px-4",
             )}
@@ -146,8 +146,8 @@ export function PantryLayout({
                         className={cn(
                           "block w-full rounded-control px-2 py-2 text-left transition-colors",
                           pathname === "/" 
-                            ? "bg-accent font-semibold text-accent-foreground" 
-                            : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
+                            ? "bg-card font-bold text-card-foreground" 
+                            : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -158,8 +158,8 @@ export function PantryLayout({
                         className={cn(
                           "block w-full rounded-control px-2 py-2 text-left transition-colors",
                           pathname === "/admin/orders" 
-                            ? "bg-accent font-semibold text-accent-foreground" 
-                            : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
+                            ? "bg-card font-bold text-card-foreground" 
+                            : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -170,8 +170,8 @@ export function PantryLayout({
                         className={cn(
                           "block w-full rounded-control px-2 py-2 text-left transition-colors",
                           pathname === "/admin/products" 
-                            ? "bg-accent font-semibold text-accent-foreground" 
-                            : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
+                            ? "bg-card font-bold text-card-foreground" 
+                            : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
                         )}
                         onClick={() => setMobileMenuOpen(false)}
                       >
@@ -184,8 +184,8 @@ export function PantryLayout({
                             className={cn(
                               "block w-full rounded-control px-2 py-2 text-left transition-colors",
                               pathname === "/admin/users" 
-                                ? "bg-accent font-semibold text-accent-foreground" 
-                                : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
+                                ? "bg-card font-bold text-card-foreground" 
+                                : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >
@@ -196,8 +196,8 @@ export function PantryLayout({
                             className={cn(
                               "block w-full rounded-control px-2 py-2 text-left transition-colors",
                               pathname === "/admin/audit-logs" 
-                                ? "bg-accent font-semibold text-accent-foreground" 
-                                : "font-medium text-foreground/75 hover:bg-muted hover:text-foreground"
+                                ? "bg-card font-bold text-card-foreground" 
+                                : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
                             )}
                             onClick={() => setMobileMenuOpen(false)}
                           >

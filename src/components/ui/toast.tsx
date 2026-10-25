@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             className={cn(
-              "pointer-events-auto flex items-center gap-3 rounded-full bg-foreground py-2 pl-4 pr-2 text-background animate-sheet",
+              "pointer-events-auto flex items-center gap-3 rounded-control bg-foreground py-2 pl-4 pr-2 font-mono text-sm text-background animate-sheet",
               t.type === "success" && "[&>svg:first-child]:text-success",
               t.type === "error" && "bg-destructive text-destructive-foreground",
               t.type === "info" && "[&>svg:first-child]:text-highlight",

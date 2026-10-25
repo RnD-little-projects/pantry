@@ -1,61 +1,61 @@
 @import "tailwindcss";
 
 :root {
-  /* Crate & sticker: sky, navy, cobalt, citrus, mint, tomato */
-  --background: 220 55% 96%;
-  --foreground: 229 49% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: 229 49% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 229 49% 15%;
-  --primary: 229 74% 53%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 226 60% 92%;
-  --secondary-foreground: 229 49% 15%;
-  --muted: 222 40% 93%;
-  --muted-foreground: 229 18% 40%;
-  --accent: 228 90% 95%;
-  --accent-foreground: 229 74% 40%;
-  --band: 229 74% 53%;
-  --band-foreground: 0 0% 100%;
-  --highlight: 35 100% 55%;
-  --highlight-foreground: 229 49% 15%;
-  --success: 161 68% 34%;
+  /* Receipt tape: a counter (background) with receipt paper (card) on it, ink, and a red stamp */
+  --background: 44 14% 84%;
+  --foreground: 40 5% 11%;
+  --card: 48 43% 98%;
+  --card-foreground: 40 5% 11%;
+  --popover: 48 43% 98%;
+  --popover-foreground: 40 5% 11%;
+  --primary: 40 5% 11%;
+  --primary-foreground: 48 43% 98%;
+  --secondary: 45 22% 90%;
+  --secondary-foreground: 40 5% 11%;
+  --muted: 45 26% 93%;
+  --muted-foreground: 44 6% 33%;
+  --accent: 45 26% 91%;
+  --accent-foreground: 40 5% 11%;
+  --band: 40 4% 22%;
+  --band-foreground: 45 22% 94%;
+  --highlight: 350 74% 45%;
+  --highlight-foreground: 0 0% 100%;
+  --success: 145 45% 30%;
   --success-foreground: 0 0% 100%;
-  --destructive: 358 75% 55%;
+  --destructive: 350 74% 45%;
   --destructive-foreground: 0 0% 100%;
-  --border: 222 35% 86%;
-  --input: 222 35% 82%;
-  --ring: 229 74% 53%;
-  --radius: 0.75rem;
+  --border: 44 14% 76%;
+  --input: 44 7% 52%;
+  --ring: 40 5% 11%;
+  --radius: 0.125rem;
 }
 
 .dark {
-  --background: 229 55% 12%;
-  --foreground: 227 70% 95%;
-  --card: 229 45% 17%;
-  --card-foreground: 227 70% 95%;
-  --popover: 229 45% 17%;
-  --popover-foreground: 227 70% 95%;
-  --primary: 229 100% 74%;
-  --primary-foreground: 229 55% 12%;
-  --secondary: 229 35% 23%;
-  --secondary-foreground: 227 70% 95%;
-  --muted: 229 35% 21%;
-  --muted-foreground: 227 25% 72%;
-  --accent: 229 45% 26%;
-  --accent-foreground: 227 70% 95%;
-  --band: 229 62% 34%;
-  --band-foreground: 227 70% 95%;
-  --highlight: 35 100% 64%;
-  --highlight-foreground: 229 55% 12%;
-  --success: 160 59% 56%;
-  --success-foreground: 229 55% 12%;
-  --destructive: 359 100% 71%;
-  --destructive-foreground: 229 55% 12%;
-  --border: 229 30% 27%;
-  --input: 229 30% 32%;
-  --ring: 229 100% 74%;
+  --background: 40 6% 10%;
+  --foreground: 44 22% 90%;
+  --card: 48 6% 15%;
+  --card-foreground: 44 22% 90%;
+  --popover: 48 6% 15%;
+  --popover-foreground: 44 22% 90%;
+  --primary: 44 22% 90%;
+  --primary-foreground: 40 5% 11%;
+  --secondary: 48 6% 21%;
+  --secondary-foreground: 44 22% 90%;
+  --muted: 48 6% 19%;
+  --muted-foreground: 43 9% 66%;
+  --accent: 48 6% 22%;
+  --accent-foreground: 44 22% 90%;
+  --band: 40 6% 7%;
+  --band-foreground: 44 22% 90%;
+  --highlight: 351 78% 62%;
+  --highlight-foreground: 40 6% 8%;
+  --success: 145 40% 58%;
+  --success-foreground: 40 6% 8%;
+  --destructive: 351 78% 62%;
+  --destructive-foreground: 40 6% 8%;
+  --border: 45 6% 26%;
+  --input: 44 6% 42%;
+  --ring: 44 22% 90%;
 }
 
 @theme inline {
@@ -85,8 +85,9 @@
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
   --radius-control: var(--radius);
-  --radius-sheet: 1.75rem;
-  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --radius-sheet: 0.125rem;
+  --font-sans: var(--font-plex-condensed), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 html {
@@ -114,7 +115,7 @@ body {
   min-height: 100vh;
   background: transparent;
   color: hsl(var(--foreground));
-  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-family: var(--font-plex-condensed), system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -124,35 +125,51 @@ body {
 }
 
 @layer components {
-  /* Expanded-width headline type, the one loud typographic move */
+  /* Headings: condensed sans, the receipt printer's header face */
   .font-display {
-    font-family: var(--font-archivo), system-ui, sans-serif;
-    font-stretch: 125%;
-    font-weight: 800;
+    font-family: var(--font-plex-condensed), system-ui, sans-serif;
+    font-weight: 700;
     letter-spacing: -0.01em;
   }
 
-  /* Oval fruit-sticker price label */
-  .sticker {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 4.5rem;
-    padding: 0.35rem 0.85rem;
-    border-radius: 999px;
-    background: hsl(var(--highlight));
-    color: hsl(var(--highlight-foreground));
-    box-shadow: 0 0 0 3px hsl(var(--card)), 0 0 0 4px hsl(var(--border));
-    font-stretch: 112%;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    transform: rotate(-4deg);
+  /* Receipt paper: square, flat, with a torn bottom edge cut out of the counter color */
+  .receipt {
+    position: relative;
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    margin-bottom: 10px;
+  }
+  .receipt::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -10px;
+    height: 10px;
+    background: radial-gradient(circle at 8px 10px, transparent 6px, hsl(var(--card)) 6.5px) repeat-x;
+    background-size: 16px 10px;
   }
 
-  .sticker-empty {
-    background: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
+  /* Dashed tear-off rule between receipt sections */
+  .receipt-rule {
+    border-top: 2px dashed hsl(var(--border));
+  }
+
+  /* Rubber stamp, used only for "no price" and other status marks */
+  .stamp {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.4rem;
+    border: 2px solid currentColor;
+    color: hsl(var(--highlight));
+    font-family: var(--font-plex-mono), ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: rotate(-3deg);
   }
 }
 
@@ -190,7 +207,7 @@ body {
   }
 }
 
-/* Motion only in response to an action: dialogs rise like a sheet, toasts pop */
+/* Motion only in response to an action: dialogs and toasts slide in */
 @keyframes sheet-in {
   from { transform: translateY(24px); opacity: 0; }
 }
@@ -199,12 +216,8 @@ body {
   from { opacity: 0; }
 }
 
-@keyframes sticker-in {
-  from { transform: rotate(-14deg) scale(0.6); opacity: 0; }
-}
 
 @media (prefers-reduced-motion: no-preference) {
   .animate-sheet { animation: sheet-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2); }
   .animate-fade { animation: fade-in 180ms ease-out; }
-  .animate-sticker { animation: sticker-in 260ms cubic-bezier(0.3, 1.4, 0.5, 1); }
 }
