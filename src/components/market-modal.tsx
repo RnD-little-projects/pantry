@@ -18,7 +18,7 @@ export function MarketModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 animate-fade sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center backdrop-blur-sm animate-fade sm:items-center sm:p-4">
       <button
         type="button"
         aria-label="Close market list modal"

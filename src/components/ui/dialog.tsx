@@ -45,7 +45,7 @@ export function Dialog({
     <div className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center sm:p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-foreground/40 animate-fade"
+        className="absolute inset-0 backdrop-blur-sm animate-fade"
         onClick={() => onOpenChange(false)}
       />
 

@@ -59,7 +59,7 @@ export function QrModal({ open, onClose }: Readonly<QrModalProps>) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4 transition-opacity duration-300">
+      <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300">
         <button
           type="button"
           aria-label="Close QR code modal"
