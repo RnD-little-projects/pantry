@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { startOrderAction } from "./new-order-action";
+import { StartItemField } from "./start-item-field";
 import Link from "next/link";
 import { Package, ShoppingCart } from "lucide-react";
 
@@ -85,19 +86,7 @@ export default async function Home() {
           <div className="receipt-rule grid grid-cols-[1fr_5rem] gap-3 pt-5">
             <div className="space-y-1.5">
               <Label htmlFor="start-item">Item</Label>
-              <Input
-                id="start-item"
-                name="itemName"
-                placeholder="milk, eggs, rice…"
-                list="market-item-names"
-                autoComplete="off"
-                required
-              />
-              <datalist id="market-item-names">
-                {marketItems.map((item) => (
-                  <option key={item.id} value={item.name} />
-                ))}
-              </datalist>
+              <StartItemField marketItems={marketItems} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="start-qty">Qty</Label>
