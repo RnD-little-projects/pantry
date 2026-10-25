@@ -37,6 +37,10 @@ vi.mock("../models", () => ({
 }));
 
 import { auth, unstable_update, signIn, signOut } from "../auth";
+import type { Session } from "next-auth";
+
+// auth is overloaded; pin the session-returning signature for mocking
+const mockAuth = vi.mocked(auth as unknown as () => Promise<Session | null>);
 import { User } from "../models";
 
 describe("auth-actions extended validation", () => {
@@ -45,7 +49,7 @@ describe("auth-actions extended validation", () => {
   });
 
   function session() {
-    vi.mocked(auth).mockResolvedValueOnce({
+    mockAuth.mockResolvedValueOnce({
       user: { id: "user_123" },
       expires: "9999",
     });
@@ -74,7 +78,7 @@ describe("auth-actions extended validation", () => {
 describe("auth-actions success paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(auth).mockResolvedValue({ user: { id: "user_123" }, expires: "9999" });
+    mockAuth.mockResolvedValue({ user: { id: "user_123" }, expires: "9999" });
   });
 
   it("changeEmailAction normalizes and saves the email (own email is allowed)", async () => {
@@ -86,7 +90,7 @@ describe("auth-actions success paths", () => {
   });
 
   it("changeEmailAction throws Unauthorized without a session", async () => {
-    vi.mocked(auth).mockResolvedValueOnce(null);
+    mockAuth.mockResolvedValueOnce(null);
     await expect(changeEmailAction(new FormData())).rejects.toThrow("Unauthorized");
   });
 

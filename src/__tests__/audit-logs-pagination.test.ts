@@ -18,6 +18,10 @@ vi.mock("../auth", () => ({
 }));
 
 import { auth } from "../auth";
+import type { Session } from "next-auth";
+
+// auth is overloaded; pin the session-returning signature for mocking
+const mockAuth = vi.mocked(auth as unknown as () => Promise<Session | null>);
 
 describe("Audit Logs Quality Assurance & Unit Tests", () => {
   beforeEach(() => {
@@ -72,7 +76,7 @@ describe("Audit Logs Quality Assurance & Unit Tests", () => {
 
   describe("fetchMoreAuditLogsAction - Server Action Authorization", () => {
     it("should throw 'Unauthorized' error if user is not logged in", async () => {
-      vi.mocked(auth).mockResolvedValueOnce(null);
+      mockAuth.mockResolvedValueOnce(null);
 
       await expect(
         fetchMoreAuditLogsAction(1, 20, "", [], [])
@@ -80,7 +84,7 @@ describe("Audit Logs Quality Assurance & Unit Tests", () => {
     });
 
     it("should throw 'Unauthorized' error if user role is not admin", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
+      mockAuth.mockResolvedValueOnce({
         user: { id: "user_123", role: "cashier", name: "John" },
         expires: "9999",
       });
@@ -91,7 +95,7 @@ describe("Audit Logs Quality Assurance & Unit Tests", () => {
     });
 
     it("should call getPaginatedAuditLogs successfully if user is admin", async () => {
-      vi.mocked(auth).mockResolvedValueOnce({
+      mockAuth.mockResolvedValueOnce({
         user: { id: "admin_123", role: "admin", name: "Admin Jane" },
         expires: "9999",
       });

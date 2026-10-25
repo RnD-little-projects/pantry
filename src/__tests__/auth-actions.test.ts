@@ -29,6 +29,10 @@ vi.mock("../models", () => ({
 
 import bcrypt from "bcryptjs";
 import { auth, unstable_update } from "../auth";
+import type { Session } from "next-auth";
+
+// auth is overloaded; pin the session-returning signature for mocking
+const mockAuth = vi.mocked(auth as unknown as () => Promise<Session | null>);
 import { User } from "../models";
 
 function form(entries: Record<string, string>) {
@@ -44,11 +48,11 @@ function dbUser(user: unknown) {
 describe("changePassword", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(auth).mockResolvedValue({ user: { id: "user_123" }, expires: "9999" });
+    mockAuth.mockResolvedValue({ user: { id: "user_123" }, expires: "9999" });
   });
 
   it("throws Unauthorized without a session", async () => {
-    vi.mocked(auth).mockResolvedValueOnce(null);
+    mockAuth.mockResolvedValueOnce(null);
     await expect(changePassword(form({ newPassword: "newpassword", confirmPassword: "newpassword" }))).rejects.toThrow("Unauthorized");
   });
 
