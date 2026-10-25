@@ -2,14 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   attachGoogleAction,
   changeEmailAction,
-  changeOwnPassword,
-  changePassword,
   logoutAction,
 } from "../app/auth-actions";
 import { cn } from "../lib/utils";
 
-const headers = vi.hoisted(() => vi.fn());
-vi.mock("next/headers", () => ({ headers }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 // Mock mongodb
@@ -73,47 +69,12 @@ describe("auth-actions extended validation", () => {
       "This email is already in use by another account",
     );
   });
-
-  it("changeOwnPassword throws Unauthorized without a session", async () => {
-    vi.mocked(auth).mockResolvedValueOnce(null);
-    const fd = new FormData();
-    fd.append("newPassword", "password123");
-    fd.append("confirmPassword", "password123");
-    await expect(changeOwnPassword(fd)).rejects.toThrow("Unauthorized");
-  });
-
-  it("changeOwnPassword rejects a short new password", async () => {
-    session();
-    const fd = new FormData();
-    fd.append("newPassword", "123");
-    fd.append("confirmPassword", "123");
-    await expect(changeOwnPassword(fd)).rejects.toThrow(
-      "Password must be at least 6 characters long",
-    );
-  });
 });
 
 describe("auth-actions success paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(auth).mockResolvedValue({ user: { id: "user_123" }, expires: "9999" });
-  });
-
-  it("changePassword hashes, clears the force flag and updates the session", async () => {
-    const fd = new FormData();
-    fd.append("password", "newpassword");
-    fd.append("confirmPassword", "newpassword");
-    expect(await changePassword(fd)).toEqual({ success: true });
-    expect(User.findByIdAndUpdate).toHaveBeenCalledWith("user_123", { passwordHash: "hashed_password", forcePasswordChange: false });
-    expect(unstable_update).toHaveBeenCalledWith({ user: { forcePasswordChange: false } });
-  });
-
-  it("changeOwnPassword stores the new hash", async () => {
-    const fd = new FormData();
-    fd.append("newPassword", "newpassword");
-    fd.append("confirmPassword", "newpassword");
-    expect(await changeOwnPassword(fd)).toEqual({ success: true });
-    expect(User.findByIdAndUpdate).toHaveBeenCalledWith("user_123", { passwordHash: "hashed_password" });
   });
 
   it("changeEmailAction normalizes and saves the email (own email is allowed)", async () => {
@@ -129,17 +90,15 @@ describe("auth-actions success paths", () => {
     await expect(changeEmailAction(new FormData())).rejects.toThrow("Unauthorized");
   });
 
-  it("logoutAction sets AUTH_URL from forwarded headers and signs out", async () => {
-    headers.mockResolvedValueOnce(new Headers({ "x-forwarded-host": "app.test", "x-forwarded-proto": "http" }));
+  it("logoutAction signs out without touching the shared AUTH_URL", async () => {
+    delete process.env.AUTH_URL;
     await logoutAction();
-    expect(process.env.AUTH_URL).toBe("http://app.test/api/auth");
+    expect(process.env.AUTH_URL).toBeUndefined();
     expect(signOut).toHaveBeenCalledWith({ redirectTo: "/login" });
   });
 
-  it("attachGoogleAction defaults to https and signs in with google", async () => {
-    headers.mockResolvedValueOnce(new Headers({ host: "pantry.test" }));
+  it("attachGoogleAction signs in with google", async () => {
     await attachGoogleAction();
-    expect(process.env.AUTH_URL).toBe("https://pantry.test/api/auth");
     expect(signIn).toHaveBeenCalledWith("google", { redirectTo: "/" });
   });
 });

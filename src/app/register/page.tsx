@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { RegisterForm } from "./register-form";
+import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
 
 type RegisterPageProps = {
   searchParams?: Promise<{
@@ -24,7 +25,7 @@ export default async function RegisterPage({ searchParams }: Readonly<RegisterPa
     <AuthShell
       tagline="Make a list, let the cashier price it, pay once."
       title="Create an account"
-      description="Pick a username and a password of at least 8 characters."
+      description={`Pick a username and a password of at least ${MIN_PASSWORD_LENGTH} characters.`}
     >
       <div className="space-y-4">
         {error ? (

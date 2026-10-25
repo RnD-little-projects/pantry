@@ -98,6 +98,10 @@ const authConfig = {
           ]
         });
 
+        if (existing && (!existing.isActive || existing.isDeleted)) {
+          return false;
+        }
+
         if (!existing) {
           if (process.env.ALLOW_REGISTRATION === "false") {
             return false;
@@ -108,8 +112,12 @@ const authConfig = {
           const allowFirstAdmin = process.env.ALLOW_FIRST_LOGIN_ADMIN === "true";
           const role = isFirstUser && allowFirstAdmin ? "admin" : "user";
 
+          // Usernames are unique; a second "John Smith" gets a short suffix from their Google id
+          const baseName = user.name || user.email?.split("@")[0] || "google_user";
+          const nameTaken = await User.exists({ username: baseName });
+
           const newUser = await User.create({
-            username: user.name || user.email?.split("@")[0] || "google_user",
+            username: nameTaken ? `${baseName}-${account.providerAccountId.slice(-4)}` : baseName,
             email: user.email?.toLowerCase(),
             provider: "google",
             providerAccountId: account.providerAccountId,

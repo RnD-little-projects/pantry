@@ -78,7 +78,7 @@ export default async function Home() {
   return (
     <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
       <div className="mx-auto w-full max-w-xl pt-2 sm:pt-8">
-        <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)} className="receipt px-6 pb-6 pt-6 sm:px-8">
+        <form action={startOrderAction} className="receipt px-6 pb-6 pt-6 sm:px-8">
           <header className="pb-4 text-center">
             <h1 className="text-lg font-bold uppercase tracking-wide">New list</h1>
             <p className="mt-1 text-xs text-muted-foreground">Write the first item and your list starts. Keep adding from there.</p>

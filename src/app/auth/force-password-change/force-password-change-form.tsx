@@ -9,6 +9,7 @@ import { Lock, ShieldAlert, CheckCircle2 } from "lucide-react";
 import { changePassword } from "@/app/auth-actions";
 import { useToast } from "@/components/ui/toast";
 import { useRouter } from "next/navigation";
+import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
 
 export default function ForcePasswordChangeForm() {
   const [loading, setLoading] = useState(false);
@@ -20,11 +21,11 @@ export default function ForcePasswordChangeForm() {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const password = formData.get("password") as string;
+    const password = formData.get("newPassword") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
 
-    if (!password || password.length < 6) {
-      toast("Password must be at least 6 characters long", "error");
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`, "error");
       setLoading(false);
       return;
     }
@@ -71,7 +72,7 @@ export default function ForcePasswordChangeForm() {
                 <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
                 <Input 
                   id="password" 
-                  name="password" 
+                  name="newPassword" 
                   type="password" 
                   required 
                   placeholder="••••••••"
@@ -97,7 +98,7 @@ export default function ForcePasswordChangeForm() {
             <div className="flex gap-3 rounded-control bg-muted p-3">
               <ShieldAlert aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Passwords must be at least 6 characters. Use a mix of letters, numbers, and symbols for better security.
+                Passwords must be at least {MIN_PASSWORD_LENGTH} characters. Use a mix of letters, numbers, and symbols for better security.
               </p>
             </div>
           </CardContent>
@@ -109,11 +110,11 @@ export default function ForcePasswordChangeForm() {
                 if (!form) return;
                 
                 const formData = new FormData(form);
-                const password = formData.get("password") as string;
+                const password = formData.get("newPassword") as string;
                 const confirmPassword = formData.get("confirmPassword") as string;
 
-                if (!password || password.length < 6) {
-                  toast("Password must be at least 6 characters long", "error");
+                if (!password || password.length < MIN_PASSWORD_LENGTH) {
+                  toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`, "error");
                   return;
                 }
 

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { changeOwnPassword } from "@/app/auth-actions";
+import { changePassword } from "@/app/auth-actions";
+import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
 
 interface ChangePasswordModalProps {
   open: boolean;
@@ -25,8 +26,8 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     const newPassword = formData.get("newPassword") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
 
-    if (!newPassword || newPassword.length < 6) {
-      toast("Password must be at least 6 characters long", "error");
+    if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
+      toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`, "error");
       setLoading(false);
       return;
     }
@@ -38,7 +39,7 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
     }
 
     try {
-      const result = await changeOwnPassword(formData);
+      const result = await changePassword(formData);
       if (result.success) {
         toast("Password changed successfully.", "success");
         onOpenChange(false);
@@ -58,6 +59,17 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
       description="Update your account password securely."
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="currentPassword">Current Password</Label>
+          <Input 
+            id="currentPassword" 
+            name="currentPassword" 
+            type="password" 
+            autoComplete="current-password"
+            placeholder="••••••••" 
+            disabled={loading}
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="newPassword">New Password</Label>
           <Input 
@@ -94,8 +106,8 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
               const newPassword = formData.get("newPassword") as string;
               const confirmPassword = formData.get("confirmPassword") as string;
 
-              if (!newPassword || newPassword.length < 6) {
-                toast("Password must be at least 6 characters long", "error");
+              if (!newPassword || newPassword.length < MIN_PASSWORD_LENGTH) {
+                toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`, "error");
                 return;
               }
 

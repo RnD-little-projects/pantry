@@ -4,11 +4,11 @@ import { auth } from "@/auth";
 import { createNewOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
 
-export async function startOrderAction(userId: string, formData: FormData) {
+export async function startOrderAction(formData: FormData) {
   const session = await auth();
-  const actualUserId = session?.user?.id || userId;
+  const userId = session?.user?.id;
 
-  if (!actualUserId) {
+  if (!userId) {
     throw new Error("Unauthorized");
   }
 
@@ -19,7 +19,7 @@ export async function startOrderAction(userId: string, formData: FormData) {
     throw new Error("Missing item name or quantity");
   }
 
-  const publicId = await createNewOrder(actualUserId as string, itemName, quantityLabel);
+  const publicId = await createNewOrder(userId, itemName, quantityLabel);
   
   redirect(`/order-list/${publicId}`);
 }

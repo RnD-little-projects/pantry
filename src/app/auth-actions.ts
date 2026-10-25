@@ -2,9 +2,9 @@
 
 import { connectMongo } from "@/lib/db/mongodb";
 import { User } from "@/models";
-import { auth } from "@/auth";
+import { auth, signIn, signOut, unstable_update } from "@/auth";
+import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
 import bcrypt from "bcryptjs";
-import { revalidatePath } from "next/cache";
 
 export async function changePassword(formData: FormData) {
   const session = await auth();
@@ -12,66 +12,12 @@ export async function changePassword(formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const password = formData.get("password") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
+  const currentPassword = String(formData.get("currentPassword") ?? "");
+  const newPassword = String(formData.get("newPassword") ?? "");
+  const confirmPassword = String(formData.get("confirmPassword") ?? "");
 
-  if (!password || password.length < 6) {
-    throw new Error("Password must be at least 6 characters long");
-  }
-
-  if (password !== confirmPassword) {
-    throw new Error("Passwords do not match");
-  }
-
-  await connectMongo();
-  const passwordHash = await bcrypt.hash(password, 10);
-  
-  await User.findByIdAndUpdate(session.user.id, {
-    passwordHash,
-    forcePasswordChange: false
-  });
-
-  const { unstable_update } = await import("@/auth");
-  await unstable_update({ user: { forcePasswordChange: false } });
-
-  return { success: true };
-}
-
-export async function logoutAction() {
-  const { headers } = await import("next/headers");
-  const headersList = await headers();
-  const host = headersList.get("x-forwarded-host") || headersList.get("host");
-  const proto = headersList.get("x-forwarded-proto") || "https";
-  if (host) {
-    process.env.AUTH_URL = `${proto}://${host}/api/auth`;
-  }
-  const { signOut } = await import("@/auth");
-  await signOut({ redirectTo: "/login" });
-}
-
-export async function attachGoogleAction() {
-  const { headers } = await import("next/headers");
-  const headersList = await headers();
-  const host = headersList.get("x-forwarded-host") || headersList.get("host");
-  const proto = headersList.get("x-forwarded-proto") || "https";
-  if (host) {
-    process.env.AUTH_URL = `${proto}://${host}/api/auth`;
-  }
-  const { signIn } = await import("@/auth");
-  await signIn("google", { redirectTo: "/" });
-}
-
-export async function changeOwnPassword(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Unauthorized");
-  }
-
-  const newPassword = formData.get("newPassword") as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-
-  if (!newPassword || newPassword.length < 6) {
-    throw new Error("Password must be at least 6 characters long");
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters long`);
   }
 
   if (newPassword !== confirmPassword) {
@@ -79,13 +25,35 @@ export async function changeOwnPassword(formData: FormData) {
   }
 
   await connectMongo();
+  const user = await User.findById(session.user.id).select("passwordHash forcePasswordChange").lean();
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  // A forced change follows an admin reset, so the user just signed in with the temp password
+  if (user.passwordHash && !user.forcePasswordChange && !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+    throw new Error("Current password is incorrect");
+  }
+
   const passwordHash = await bcrypt.hash(newPassword, 10);
-  
   await User.findByIdAndUpdate(session.user.id, {
-    passwordHash
+    passwordHash,
+    forcePasswordChange: false
   });
 
+  if (user.forcePasswordChange) {
+    await unstable_update({ user: { forcePasswordChange: false } });
+  }
+
   return { success: true };
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/login" });
+}
+
+export async function attachGoogleAction() {
+  await signIn("google", { redirectTo: "/" });
 }
 
 export async function changeEmailAction(formData: FormData) {
@@ -111,7 +79,6 @@ export async function changeEmailAction(formData: FormData) {
     email: cleanEmail,
   });
 
-  const { unstable_update } = await import("@/auth");
   await unstable_update({ user: { email: cleanEmail } });
 
   return { success: true, email: cleanEmail };

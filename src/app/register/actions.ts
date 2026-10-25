@@ -5,6 +5,7 @@ import { connectMongo } from "@/lib/db/mongodb";
 import { User } from "@/models";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
+import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
 
 export async function registerAction(formData: FormData) {
   if (process.env.ALLOW_REGISTRATION === "false") {
@@ -22,8 +23,8 @@ export async function registerAction(formData: FormData) {
       return { error: "Username must be at least 3 characters." };
     }
 
-    if (password.length < 8) {
-      return { error: "Password must be at least 8 characters." };
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
     }
 
     if (password !== confirmPassword) {

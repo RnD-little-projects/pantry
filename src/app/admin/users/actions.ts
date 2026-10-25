@@ -5,8 +5,8 @@ import { User, AuditLog } from "@/models";
 import { auth } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
-
-const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+import { randomBytes } from "crypto";
+import { MIN_PASSWORD_LENGTH, escapeRegex } from "@/lib/utils";
 
 /**
  * Ensures the caller is an admin.
@@ -80,8 +80,7 @@ export async function resetUserPassword(userId: string) {
   const adminId = await ensureAdmin();
   await connectMongo();
   
-  // Generate a random 10-character password
-  const tempPassword = Math.random().toString(36).slice(-10);
+  const tempPassword = randomBytes(9).toString("base64url");
   const passwordHash = await bcrypt.hash(tempPassword, 10);
   
   const oldUser = await User.findByIdAndUpdate(userId, {
@@ -148,7 +147,7 @@ export async function createUser(data: Record<string, unknown>) {
 
   let passwordHash = undefined;
   if (password) {
-    if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+    if (password.length < MIN_PASSWORD_LENGTH) throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
     passwordHash = await bcrypt.hash(password, 10);
   }
 

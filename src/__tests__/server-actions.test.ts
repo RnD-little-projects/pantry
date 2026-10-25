@@ -93,20 +93,20 @@ describe("signInAction", () => {
 });
 
 describe("startOrderAction", () => {
-  it("throws without any user id", async () => {
+  it("throws when signed out, whatever the form says", async () => {
     m.auth.mockResolvedValueOnce(null);
-    await expect(startOrderAction("", form({ itemName: "Rice", quantity: "1" }))).rejects.toThrow("Unauthorized");
+    await expect(startOrderAction(form({ itemName: "Rice", quantity: "1" }))).rejects.toThrow("Unauthorized");
   });
 
   it("requires item name and quantity", async () => {
     m.auth.mockResolvedValueOnce({ user: { id: "u1" } });
-    await expect(startOrderAction("u1", form({ itemName: "Rice" }))).rejects.toThrow("Missing item name or quantity");
+    await expect(startOrderAction(form({ itemName: "Rice" }))).rejects.toThrow("Missing item name or quantity");
   });
 
-  it("prefers the session user, creates the order and redirects", async () => {
+  it("uses the session user, creates the order and redirects", async () => {
     m.auth.mockResolvedValueOnce({ user: { id: "session-user" } });
     m.db.createNewOrder.mockResolvedValueOnce("pub9");
-    await startOrderAction("bound-user", form({ itemName: "Rice", quantity: "2" }));
+    await startOrderAction(form({ itemName: "Rice", quantity: "2" }));
     expect(m.db.createNewOrder).toHaveBeenCalledWith("session-user", "Rice", "2");
     expect(m.redirect).toHaveBeenCalledWith("/order-list/pub9");
   });
@@ -281,14 +281,14 @@ describe("admin user actions", () => {
 
       it("rejects a short password", async () => {
         m.User.findOne.mockResolvedValue(null);
-        await expect(createUser({ username: "ann", password: "123" })).rejects.toThrow("Password must be at least 6 characters.");
+        await expect(createUser({ username: "ann", password: "1234567" })).rejects.toThrow("Password must be at least 8 characters.");
       });
 
       it("creates the user with defaults and logs it", async () => {
         m.User.findOne.mockResolvedValue(null);
         m.hash.mockResolvedValueOnce("hashed");
         m.User.create.mockResolvedValueOnce({ _id: "new1" });
-        await createUser({ username: "ann", email: "Ann@X.com", password: "secret1" });
+        await createUser({ username: "ann", email: "Ann@X.com", password: "secret12" });
         expect(m.User.create).toHaveBeenCalledWith({
           username: "ann",
           email: "ann@x.com",

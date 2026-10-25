@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
 import { registerAction } from "./actions";
+import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
 
 export function RegisterForm() {
   const { toast } = useToast();
@@ -25,8 +26,8 @@ export function RegisterForm() {
       return;
     }
 
-    if (password.length < 8) {
-      toast("Password must be at least 8 characters.", "error");
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, "error");
       setIsLoading(false);
       return;
     }
@@ -89,7 +90,7 @@ export function RegisterForm() {
           name="password"
           autoComplete="new-password"
           type="password"
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
           required
           disabled={isLoading}
         />
@@ -101,7 +102,7 @@ export function RegisterForm() {
           name="confirmPassword"
           autoComplete="new-password"
           type="password"
-          minLength={8}
+          minLength={MIN_PASSWORD_LENGTH}
           required
           disabled={isLoading}
         />
@@ -122,8 +123,8 @@ export function RegisterForm() {
             return;
           }
 
-          if (password.length < 8) {
-            toast("Password must be at least 8 characters.", "error");
+          if (password.length < MIN_PASSWORD_LENGTH) {
+            toast(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`, "error");
             return;
           }
 
