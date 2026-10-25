@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getLatestOrderPublicId, getOverviewSessions, getMarketItems, getMarketItemMetrics } from "@/lib/pantry-db";
 import { PantryLayout } from "@/components/pantry-layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { startOrderAction } from "./new-order-action";
 import Link from "next/link";
@@ -28,49 +30,51 @@ export default async function Home() {
     return (
       <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={userRole} user={session.user as any}>
         <div className="space-y-6">
-          <div className="px-1">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Cashier Dashboard</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Overview of market items and quick navigation.</p>
+          <div>
+            <h1 className="font-display text-2xl sm:text-3xl">Today at the counter</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Price waiting items first, then check orders.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="rounded-xl border border-border/60 bg-card p-6 shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">Total Market Items</p>
-              <h2 className="mt-2 text-3xl font-bold">{metrics.total}</h2>
-            </div>
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-6 shadow-sm">
-              <p className="text-sm font-medium text-amber-600/80 dark:text-amber-400/80">Pending Valuation</p>
-              <h2 className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">{metrics.pending}</h2>
-            </div>
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-6 shadow-sm">
-              <p className="text-sm font-medium text-emerald-600/80 dark:text-emerald-400/80">Valuated Items</p>
-              <h2 className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">{metrics.valuated}</h2>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-            <Link href="/admin/products" className="group rounded-xl border border-border/60 bg-card p-6 shadow-sm hover:border-primary/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <Package size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Manage Products</h3>
-                  <p className="text-sm text-muted-foreground">Add, edit, or set prices for market items</p>
-                </div>
+          {/* Waiting-for-price gets the sticker: it's the cashier's to-do */}
+          <section aria-label="Market items" className="rounded-sheet border border-border bg-card">
+            <Link href="/admin/products" className="flex items-center justify-between gap-4 rounded-t-sheet p-5 transition-colors hover:bg-muted/50">
+              <div>
+                <p className="font-semibold">Waiting for a price</p>
+                <p className="text-sm text-muted-foreground">Set prices in Products</p>
               </div>
+              <span className={metrics.pending > 0 ? "sticker text-2xl" : "sticker sticker-empty text-2xl"}>{metrics.pending}</span>
             </Link>
-            
-            <Link href="/admin/orders" className="group rounded-xl border border-border/60 bg-card p-6 shadow-sm hover:border-primary/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <ShoppingCart size={24} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Manage Orders</h3>
-                  <p className="text-sm text-muted-foreground">View and manage all user orders</p>
-                </div>
+            <dl className="grid grid-cols-2 divide-x divide-border border-t border-border">
+              <div className="p-5">
+                <dt className="text-sm text-muted-foreground">Priced</dt>
+                <dd className="font-display mt-1 text-2xl text-success">{metrics.valuated}</dd>
               </div>
+              <div className="p-5">
+                <dt className="text-sm text-muted-foreground">All market items</dt>
+                <dd className="font-display mt-1 text-2xl">{metrics.total}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Link href="/admin/products" className="group flex items-center gap-4 rounded-sheet border border-border bg-card p-5 transition-colors hover:border-primary">
+              <span className="rounded-control bg-accent p-3 text-accent-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <Package aria-hidden="true" size={22} />
+              </span>
+              <span>
+                <span className="block font-semibold">Products</span>
+                <span className="block text-sm text-muted-foreground">Add items and set prices</span>
+              </span>
+            </Link>
+
+            <Link href="/admin/orders" className="group flex items-center gap-4 rounded-sheet border border-border bg-card p-5 transition-colors hover:border-primary">
+              <span className="rounded-control bg-accent p-3 text-accent-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <ShoppingCart aria-hidden="true" size={22} />
+              </span>
+              <span>
+                <span className="block font-semibold">Orders</span>
+                <span className="block text-sm text-muted-foreground">See every customer’s list</span>
+              </span>
             </Link>
           </div>
         </div>
@@ -92,49 +96,49 @@ export default async function Home() {
 
   return (
     <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
-      <div className="space-y-6">
-        <div className="px-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Start a fresh order</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Add your first item to begin a new private order list.</p>
+      <div className="mx-auto w-full max-w-xl space-y-6 pt-2 sm:pt-10">
+        <div>
+          <h1 className="font-display text-3xl text-balance sm:text-4xl">What do you need today?</h1>
+          <p className="mt-2 text-muted-foreground">Add the first item and your list starts. Keep adding from there.</p>
         </div>
 
-        <div className="max-w-xl overflow-hidden rounded-2xl border border-border/60 bg-card/50 backdrop-blur-md shadow-sm p-6">
-          <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Item Name</label>
-                <input
-                  name="itemName"
-                  placeholder="What do you need? (e.g. Milk, Apples)"
-                  list="market-item-names"
-                  autoComplete="off"
-                  required
-                  className="w-full rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors"
-                  autoFocus
-                />
-                <datalist id="market-item-names">
-                  {marketItems.map((item) => (
-                    <option key={item.id} value={item.name} />
-                  ))}
-                </datalist>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quantity</label>
-                <input
-                  name="quantity"
-                  type="number"
-                  placeholder="1"
-                  min="1"
-                  required
-                  className="w-full rounded-xl border border-border/60 bg-background px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors"
-                />
-              </div>
+        <form action={startOrderAction.bind(null, (session.user as Record<string, unknown>).id as string)} className="space-y-4 rounded-sheet border border-border bg-card p-5">
+          <div className="grid grid-cols-[1fr_5.5rem] gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="start-item">Item</Label>
+              <Input
+                id="start-item"
+                name="itemName"
+                placeholder="Milk, eggs, rice…"
+                list="market-item-names"
+                autoComplete="off"
+                required
+                autoFocus
+              />
+              <datalist id="market-item-names">
+                {marketItems.map((item) => (
+                  <option key={item.id} value={item.name} />
+                ))}
+              </datalist>
             </div>
-            <Button type="submit" className="w-full sm:w-auto font-semibold px-6 py-2.5 rounded-xl">
-              Create Order List
-            </Button>
-          </form>
-        </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="start-qty">Quantity</Label>
+              <Input
+                id="start-qty"
+                name="quantity"
+                type="number"
+                inputMode="numeric"
+                defaultValue="1"
+                min="1"
+                required
+                className="no-spinner text-center"
+              />
+            </div>
+          </div>
+          <Button type="submit" size="lg" className="w-full">
+            Start my list
+          </Button>
+        </form>
       </div>
     </PantryLayout>
   );

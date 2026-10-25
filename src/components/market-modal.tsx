@@ -58,7 +58,7 @@ export function MarketModal({
                 )}
                 <div className="mt-1 text-xs text-muted-foreground">{item.note}</div>
               </div>
-              <div className="text-right"><span className="sticker text-sm">{item.price}</span></div>
+              <div className="text-right"><span className={item.price === "Pending" ? "sticker sticker-empty text-sm" : "sticker text-sm"}>{item.price}</span></div>
               <div className="text-right">
                 <Badge variant={item.status === "Active" ? "success" : "secondary"}>{item.status}</Badge>
               </div>
