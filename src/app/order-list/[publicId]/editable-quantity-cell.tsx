@@ -94,13 +94,13 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
   };
 
   const inner = (
-    <div className={`relative flex w-fit items-center ${variant === "cell" ? "mx-auto" : ""} gap-1 rounded-full bg-muted p-1 ${status === "error" ? "ring-2 ring-destructive" : ""}`}>
+    <div className={`relative flex w-fit items-center ${variant === "cell" ? "mx-auto" : ""} border border-input ${status === "error" ? "border-destructive ring-1 ring-destructive" : ""}`}>
       {isCreator && (
         <button
           type="button"
           onClick={handleDecrement}
           disabled={status === "saving"}
-          className="flex h-9 w-9 touch-manipulation items-center justify-center rounded-full bg-card text-foreground transition-colors hover:bg-secondary active:translate-y-px disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-10 w-10 touch-manipulation items-center justify-center bg-card text-card-foreground transition-colors hover:bg-muted active:translate-y-px disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           aria-label="Decrease quantity"
         >
           <Minus aria-hidden="true" className="h-4 w-4" />
@@ -119,7 +119,7 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
         onBlur={handleBlur}
         disabled={!isCreator}
         placeholder="0"
-        className={`no-spinner w-10 border-0 bg-transparent text-center text-base font-extrabold tabular-nums text-foreground outline-none placeholder:text-muted-foreground focus:ring-0 disabled:cursor-default ${status === "saving" ? "opacity-50" : ""}`}
+        className={`no-spinner w-10 border-0 bg-transparent text-center font-mono text-[15px] font-bold tabular-nums text-card-foreground outline-none placeholder:text-muted-foreground focus:ring-0 disabled:cursor-default ${status === "saving" ? "opacity-50" : ""}`}
       />
 
       {isCreator && (
@@ -127,7 +127,7 @@ export function EditableQuantityCell({ publicId, itemIndex, quantityLabel, isCre
           type="button"
           onClick={handleIncrement}
           disabled={status === "saving"}
-          className="flex h-9 w-9 touch-manipulation items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="flex h-10 w-10 touch-manipulation items-center justify-center bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           aria-label="Increase quantity"
         >
           <Plus aria-hidden="true" className="h-4 w-4" />

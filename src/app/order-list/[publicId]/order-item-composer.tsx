@@ -213,7 +213,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
     }
   };
 
-  const fieldClass = "h-11 w-full rounded-control border border-input bg-background px-3.5 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/30 sm:text-sm";
+  const fieldClass = "h-11 w-full rounded-control border border-dashed border-input bg-transparent px-3 font-mono text-base text-card-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-solid focus:border-ring sm:text-sm";
 
   return (
     <tr>
@@ -226,7 +226,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
           onFocus={() => setShowSuggestions(true)}
           onKeyDown={handleEnter}
           aria-label="Item name"
-          placeholder="Add an item…"
+          placeholder="+ add item…"
           autoComplete="off"
           enterKeyHint="done"
           className={fieldClass}
@@ -234,7 +234,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
 
         {/* Autocomplete Dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden rounded-control border border-border bg-popover animate-fade">
+          <div className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden border border-input bg-popover font-mono animate-fade">
             {suggestions.map((item) => (
               <button
                 key={item.id}
@@ -291,7 +291,7 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
             handleAutosave();
           }}
           disabled={status === "saving"}
-          className="inline-flex h-11 touch-manipulation items-center gap-1.5 rounded-control bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex h-11 touch-manipulation items-center gap-1.5 rounded-control bg-primary px-4 text-[15px] font-bold text-primary-foreground transition-colors hover:bg-primary/90 active:translate-y-px disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Plus aria-hidden="true" className="h-4 w-4" />
           <span className="max-sm:sr-only">{status === "saving" ? "Adding…" : "Add"}</span>

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Archive, Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 type ArchiveOrderDialogProps = {
@@ -123,7 +123,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
 
   const handleArchive = async () => {
     setIsArchiving(true);
-    const loadingId = toast(`Archiving "${orderTitle}"...`, "loading");
+    const loadingId = toast(`Paying for "${orderTitle}"…`, "loading");
 
     try {
       const formData = new FormData();
@@ -148,7 +148,7 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
       }
 
       dismiss(loadingId);
-      toast("Order archived successfully", "success");
+      toast("Paid. The list is now locked.", "success");
       setOpen(false);
       window.location.href = "/";
     } catch (error) {
@@ -161,24 +161,23 @@ export function ArchiveOrderDialog({ publicId, orderTitle }: ArchiveOrderDialogP
 
   return (
     <>
-      <Button variant="outline" size="sm" className="gap-2" onClick={() => setOpen(true)}>
-        <Archive className="h-4 w-4" />
-        Archive
+      <Button variant="highlight" size="lg" className="w-full" onClick={() => setOpen(true)}>
+        Pay for the whole list
       </Button>
 
       <Dialog 
         open={open} 
         onOpenChange={setOpen}
-        title="Archive this order?"
-        description="The list gets locked and prices are frozen. You can still view it, but you can’t add or change items."
+        title="Pay for the whole list?"
+        description="One payment covers every item. Attach a photo of the receipt, or mark it paid in cash. The list is then locked and its prices are frozen."
         footer={
           <>
             <Button variant="ghost" onClick={() => setOpen(false)} disabled={isArchiving}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleArchive} disabled={isArchiving} className="gap-2">
-              {isArchiving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
-              Archive order
+            <Button variant="highlight" onClick={handleArchive} disabled={isArchiving} className="gap-2">
+              {isArchiving && <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />}
+              Pay and lock list
             </Button>
           </>
         }
