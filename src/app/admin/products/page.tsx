@@ -41,7 +41,7 @@ export default async function AdminProductsPage() {
       <div className="space-y-6">
         <div className="px-1 flex justify-between items-end">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Admin: Market Items</h1>
+            <h1 className="font-display text-2xl sm:text-3xl">Products</h1>
             <p className="mt-2 text-sm text-muted-foreground">Manage products, categories, and prices.</p>
           </div>
         </div>
