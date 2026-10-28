@@ -310,6 +310,39 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
 
   const matchedProduct = await getOrCreateProduct(cleanItemName);
 
+  // Same product already on the list: add to its quantity instead of a duplicate row.
+  const existing = order.items.find(
+    (entry: Record<string, unknown>) => String(entry.productId) === String(matchedProduct._id)
+  ) as Record<string, unknown> | undefined;
+  if (existing) {
+    const oldQuantityLabel = String(existing.quantityLabel ?? "").trim();
+    const newQuantity = (Number(existing.quantity) || 0) + quantity;
+    existing.quantity = newQuantity;
+    existing.quantityLabel = String(newQuantity);
+    existing.lineTotal = typeof existing.unitPrice === "number" ? existing.unitPrice * newQuantity : 0;
+    order.markModified("items");
+    await order.save();
+
+    await AuditLog.create({
+      actorId: userId,
+      targetType: "order",
+      targetId: publicId,
+      action: "quantity_update",
+      before: { itemName: existing.itemName, quantityLabel: oldQuantityLabel },
+      after: { itemName: existing.itemName, quantityLabel: existing.quantityLabel },
+      note: `Added ${quantity} to ${existing.itemName}`,
+    });
+
+    return {
+      id: String(existing._id ?? order.items.indexOf(existing)),
+      itemName: String(existing.itemName),
+      quantityLabel: String(existing.quantityLabel),
+      unitPrice: (existing.unitPrice as number | undefined) ?? null,
+      lineTotal: Number(existing.lineTotal) || 0,
+      status: (existing.status as string | undefined) ?? "draft",
+    };
+  }
+
   const item = {
     productId: matchedProduct._id,
     itemName: matchedProduct.name,

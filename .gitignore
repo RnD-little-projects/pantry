@@ -45,3 +45,6 @@ next-env.d.ts
 
 # browser test screenshots and logs
 /.playwright-mcp/
+
+# Serena tool data
+.serena/

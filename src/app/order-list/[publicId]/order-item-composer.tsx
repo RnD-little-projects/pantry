@@ -14,6 +14,9 @@ type OrderItemComposerProps = {
 
 const AUTOSAVE_DELAY = 10000;
 
+// Matches Tailwind's `sm` breakpoint, where the Add button collapses to an icon.
+const isMobile = () => window.matchMedia("(max-width: 639px)").matches;
+
 export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemComposerProps) {
   const router = useRouter();
   const [itemName, setItemName] = useState("");
@@ -154,6 +157,11 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
   const scheduleAutosave = () => {
     clearTimer();
 
+    // Mobile saves only via the Add button.
+    if (isMobile()) {
+      return;
+    }
+
     if (!itemName.trim() && !quantityLabel.trim()) {
       setStatus("idle");
       setMessage("");
@@ -198,7 +206,9 @@ export function OrderItemComposer({ publicId, marketItems = [] }: OrderItemCompo
       }
 
       setShowSuggestions(false);
-      handleAutosave();
+      if (!isMobile()) {
+        handleAutosave();
+      }
     }, 200);
   };
 

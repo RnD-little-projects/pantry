@@ -214,6 +214,17 @@ describe("pantry-db", () => {
   });
 
   describe("appendOrderItem", () => {
+    it("adds to the quantity of an existing line for the same product", async () => {
+      const order = orderDoc({ authorId: "u", items: [{ _id: "i1", productId: "prod", itemName: "Rice", quantity: 2, quantityLabel: "2", unitPrice: 40, lineTotal: 80, status: "priced" }] });
+      m.Order.findOne.mockResolvedValueOnce(order);
+      m.Product.findOne.mockResolvedValueOnce({ _id: "prod", name: "Rice", normalizedName: "rice", price: 50 });
+      const res = await db.appendOrderItem("p", "u", "rice", "3");
+      expect(order.items).toHaveLength(1);
+      expect(order.items[0]).toMatchObject({ quantity: 5, quantityLabel: "5", lineTotal: 200 });
+      expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ action: "quantity_update" }));
+      expect(res).toMatchObject({ id: "i1", quantityLabel: "5", lineTotal: 200 });
+    });
+
     it("throws ORDER_NOT_FOUND", async () => {
       m.Order.findOne.mockResolvedValueOnce(null);
       await expect(db.appendOrderItem("p", "u", "Rice", "1")).rejects.toThrow("ORDER_NOT_FOUND");
