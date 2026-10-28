@@ -1,8 +1,8 @@
-import { AuditLog, Order, Product, User, Category } from "@/models";
+import { AuditLog, Order, Product, User } from "@/models";
 import { randomBytes } from "crypto";
 
 import { connectMongo } from "./db/mongodb";
-import { escapeRegex } from "./utils";
+import { currentUnitPrice, escapeRegex } from "./utils";
 import type { MarketItem, OrderHistoryEntry, SharedOrderView, WorkspaceSession } from "./pantry-types";
 
 type LeanOrderItem = {
@@ -13,7 +13,7 @@ type LeanOrderItem = {
   unit?: string | null;
   unitPrice?: number | null;
   lineTotal?: number | null;
-  status?: "draft" | "priced" | "finalized" | null;
+  status?: "draft" | "priced" | null;
 };
 
 type LeanOrder = {
@@ -22,16 +22,15 @@ type LeanOrder = {
   authorId?: unknown;
   title?: string | null;
   items?: LeanOrderItem[] | null;
-  status?: "draft" | "finalized" | "paid" | "unpaid" | "archived" | null;
+  status?: "draft" | "archived" | null;
   updatedAt?: Date | string | number | null;
   createdAt?: Date | string | number | null;
   subtotal?: number | null;
   total?: number | null;
 };
 
-// LeanProduct used implicitly via lean() queries
-
-// LeanAuditLog used implicitly via lean() queries
+// Users shop in the Philippines; the server's own clock may be UTC
+const TIME_ZONE = "Asia/Manila";
 
 function formatPeso(amount: number | null) {
   if (amount === null || Number.isNaN(amount)) {
@@ -71,6 +70,23 @@ function codedError(code: string, message = code) {
   return Object.assign(new Error(message), { code });
 }
 
+// One rule for item input, whether it starts a list or joins one
+function cleanItemName(itemName: string) {
+  const clean = String(itemName ?? "").trim();
+  if (clean.length < 2) {
+    throw codedError("ITEM_NAME_TOO_SHORT", "Item name must be at least 2 characters");
+  }
+  return clean;
+}
+
+function cleanQuantityLabel(quantityLabel: string) {
+  const clean = String(quantityLabel ?? "").trim();
+  if (!clean) {
+    throw codedError("QUANTITY_LABEL_TOO_SHORT", "Quantity label is required");
+  }
+  return clean;
+}
+
 // Owner-only writes; archived (paid) orders are locked
 function assertCanEdit(order: { authorId?: unknown; status?: string | null }, userId: string) {
   if (!order.authorId || String(order.authorId) !== String(userId)) {
@@ -93,52 +109,39 @@ function itemAt<T extends { itemName?: string | null }>(order: { items?: T[] }, 
   return item;
 }
 
-async function canUseMongo() {
-  if (!process.env.MONGODB_URI) {
-    return false;
-  }
-
-  try {
-    await connectMongo();
-    return true;
-  } catch {
-    return false;
-  }
+function toSessionRow(order: LeanOrder) {
+  return {
+    id: String(order._id ?? order.publicId),
+    publicId: order.publicId,
+    title: order.title || `Order ${order.publicId}`,
+    // Archiving is how an order gets paid
+    preview: order.status === "archived" ? "Paid" : "Draft",
+    items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
+    updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
+    status: order.status || "draft",
+  };
 }
 
 export async function getOverviewSessions(userId?: string): Promise<WorkspaceSession[]> {
-  const ready = await canUseMongo();
-  if (!ready) {
-    return [];
-  }
-
   // Orders are private: signed-out visitors have no list of their own
   if (!userId) {
     return [];
   }
 
+  await connectMongo();
   const orders = await Order.find({ authorId: userId }, { publicId: 1, title: 1, items: 1, status: 1, updatedAt: 1, createdAt: 1 })
     .sort({ updatedAt: -1 })
     .limit(6)
     .lean();
 
   return orders.map((order: LeanOrder, index: number) => ({
-    id: String(order._id ?? order.publicId ?? index),
-    publicId: order.publicId,
-    title: order.title || `Order ${order.publicId}`,
-    preview: order.status === "draft" ? "Draft" : order.status === "paid" ? "Paid" : "Ready for checkout",
-    items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
-    updated: formatRelativeDate(order.updatedAt ?? order.createdAt),
+    ...toSessionRow(order),
     active: order.status === "draft" || index === 0,
-    status: order.status || "draft",
   }));
 }
 
 export async function getMarketItems(): Promise<MarketItem[]> {
-  const ready = await canUseMongo();
-  if (!ready) {
-    return [];
-  }
+  await connectMongo();
 
   const products = await Product.find({ active: true }, { name: 1, price: 1, active: 1, notes: 1, aliases: 1 })
     .sort({ updatedAt: -1 })
@@ -155,10 +158,7 @@ export async function getMarketItems(): Promise<MarketItem[]> {
 }
 
 export async function getMarketItemMetrics() {
-  const ready = await canUseMongo();
-  if (!ready) {
-    return { total: 0, pending: 0, valuated: 0 };
-  }
+  await connectMongo();
 
   const products = await Product.find({ active: true }, { price: 1 }).lean();
   
@@ -181,44 +181,24 @@ export async function getMarketItemMetrics() {
 }
 
 async function getOrCreateProduct(itemName: string) {
-  const cleanItemName = String(itemName ?? "").trim();
-  const normalizedItemName = cleanItemName.toLowerCase();
+  const name = itemName.trim();
+  const normalizedName = name.toLowerCase();
 
-  let matchedProduct = await Product.findOne({
-    $or: [
-      { normalizedName: normalizedItemName },
-      { "aliases.value": normalizedItemName }
-    ],
-    active: true
-  });
-
-  if (!matchedProduct) {
-    const existing = await Product.findOne({ normalizedName: normalizedItemName });
-    if (existing) {
-      existing.active = true;
-      await existing.save();
-      matchedProduct = existing;
-    } else {
-      matchedProduct = await Product.create({
-        name: cleanItemName,
-        normalizedName: normalizedItemName,
-        active: true
-      });
-    }
-  }
-
-  return matchedProduct;
+  const matched = await Product.findOne({ $or: [{ normalizedName }, { "aliases.value": normalizedName }], active: true });
+  // One atomic write, so two people adding the same new item at once share one product
+  return matched ?? Product.findOneAndUpdate(
+    { normalizedName },
+    { $set: { active: true }, $setOnInsert: { name } },
+    { upsert: true, returnDocument: "after" },
+  );
 }
 
 export async function getSharedOrder(publicId: string, userId?: string, viewerRole?: string): Promise<SharedOrderView> {
-  const ready = await canUseMongo();
-  if (!ready) {
-    throw new Error("DATABASE_NOT_READY");
-  }
+  await connectMongo();
 
   const order = (await Order.findOne({ publicId }).populate("items.productId").lean()) as Record<string, unknown> | null;
   if (!order) {
-    throw new Error("ORDER_NOT_FOUND");
+    throw codedError("ORDER_NOT_FOUND");
   }
 
   const orderAuthorId = order.authorId ? String(order.authorId) : null;
@@ -227,7 +207,7 @@ export async function getSharedOrder(publicId: string, userId?: string, viewerRo
   // Only the owner and staff (who price and review orders) may open an order
   const isStaff = viewerRole === "admin" || viewerRole === "cashier";
   if (!isAuthor && !isStaff) {
-    throw new Error("ORDER_FORBIDDEN");
+    throw codedError("ORDER_FORBIDDEN");
   }
 
   const orderItems = order.items as Record<string, unknown>[] | null;
@@ -235,14 +215,10 @@ export async function getSharedOrder(publicId: string, userId?: string, viewerRo
     ? orderItems.map((item: Record<string, unknown>, index: number) => {
         const quantityLabel = item.quantityLabel ?? `${item.quantity ?? 0}${item.unit ? ` ${item.unit}` : ""}`.trim();
         
-        // Use the latest product price if available, fallback to stored unitPrice
-        const populatedProduct = item.productId as Record<string, unknown> | null;
-        const productPrice = populatedProduct && typeof populatedProduct === "object" && typeof populatedProduct.price === "number" ? populatedProduct.price : null;
-        
-        // For archived orders, always freeze the price to item.unitPrice if it was set
+        // Archived orders keep the price they were paid at
         const unitPrice = order.status === "archived" && typeof item.unitPrice === "number"
           ? item.unitPrice
-          : (productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : null));
+          : currentUnitPrice(item);
         
         const quantity = typeof item.quantity === "number" ? item.quantity : 1;
         const lineTotal = unitPrice !== null ? unitPrice * quantity : 0;
@@ -253,7 +229,7 @@ export async function getSharedOrder(publicId: string, userId?: string, viewerRo
           quantityLabel: quantityLabel as string,
           unitPrice,
           lineTotal,
-          status: (item.status as "draft" | "priced" | "finalized") ?? "draft",
+          status: (item.status as "draft" | "priced") ?? "draft",
         };
       })
     : [];
@@ -272,43 +248,28 @@ export async function getSharedOrder(publicId: string, userId?: string, viewerRo
     total,
     receiptUrl: (order.receiptUrl as string) || null,
     paymentMethod: (order.paymentMethod as "cash" | "receipt" | null) ?? null,
-    status: (order.status as "draft" | "finalized" | "paid" | "unpaid" | "archived") ?? "draft",
+    status: (order.status as "draft" | "archived") ?? "draft",
     isAuthor,
   };
 }
 
 export async function appendOrderItem(publicId: string, userId: string, itemName: string, quantityLabel: string) {
-  const ready = await canUseMongo();
-  if (!ready) {
-    throw new Error("DATABASE_NOT_READY");
-  }
+  await connectMongo();
 
-  const cleanItemName = String(itemName ?? "").trim();
-  const cleanQuantityLabel = String(quantityLabel ?? "").trim();
-
-  if (cleanItemName.length < 2) {
-    const error = new Error("Item name must be at least 2 characters");
-    (error as Error & { code?: string }).code = "ITEM_NAME_TOO_SHORT";
-    throw error;
-  }
-
-  if (cleanQuantityLabel.length < 1) {
-    const error = new Error("Quantity label is required");
-    (error as Error & { code?: string }).code = "QUANTITY_LABEL_TOO_SHORT";
-    throw error;
-  }
+  const name = cleanItemName(itemName);
+  const label = cleanQuantityLabel(quantityLabel);
 
   const order = await Order.findOne({ publicId });
   if (!order) {
-    throw new Error("ORDER_NOT_FOUND");
+    throw codedError("ORDER_NOT_FOUND");
   }
 
   assertCanEdit(order, userId);
 
-  const parsedQuantity = parseInt(cleanQuantityLabel, 10);
+  const parsedQuantity = parseInt(label, 10);
   const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
 
-  const matchedProduct = await getOrCreateProduct(cleanItemName);
+  const matchedProduct = await getOrCreateProduct(name);
 
   // Same product already on the list: add to its quantity instead of a duplicate row.
   const existing = order.items.find(
@@ -348,7 +309,7 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
     itemName: matchedProduct.name,
     normalizedItemName: matchedProduct.normalizedName,
     quantity,
-    quantityLabel: cleanQuantityLabel,
+    quantityLabel: label,
     unit: matchedProduct.unit || "",
     unitPrice: matchedProduct.price,
     lineTotal: typeof matchedProduct.price === "number" ? matchedProduct.price * quantity : 0,
@@ -385,29 +346,21 @@ export async function appendOrderItem(publicId: string, userId: string, itemName
 }
 
 export async function updateOrderItemQuantity(publicId: string, userId: string, itemIndex: number, itemName: string, quantityLabel: string) {
-  const ready = await canUseMongo();
-  if (!ready) {
-    throw new Error("DATABASE_NOT_READY");
-  }
+  await connectMongo();
 
-  const cleanQuantityLabel = String(quantityLabel ?? "").trim();
-  if (cleanQuantityLabel.length < 1) {
-    const error = new Error("Quantity label is required");
-    (error as Error & { code?: string }).code = "QUANTITY_LABEL_TOO_SHORT";
-    throw error;
-  }
+  const label = cleanQuantityLabel(quantityLabel);
 
   const order = await Order.findOne({ publicId });
   if (!order) {
-    throw new Error("ORDER_NOT_FOUND");
+    throw codedError("ORDER_NOT_FOUND");
   }
 
   assertCanEdit(order, userId);
   const item = itemAt(order, itemIndex, itemName) as Record<string, unknown>;
   const oldQuantityLabel = String(item.quantityLabel ?? "").trim();
-  item.quantityLabel = cleanQuantityLabel;
+  item.quantityLabel = label;
 
-  const parsedQuantity = parseInt(cleanQuantityLabel, 10);
+  const parsedQuantity = parseInt(label, 10);
   if (Number.isFinite(parsedQuantity) && parsedQuantity > 0) {
     item.quantity = parsedQuantity;
   }
@@ -444,11 +397,10 @@ export async function updateOrderItemQuantity(publicId: string, userId: string, 
 }
 
 export async function removeOrderItem(publicId: string, userId: string, itemIndex: number, itemName: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("DATABASE_NOT_READY");
+  await connectMongo();
 
   const order = await Order.findOne({ publicId });
-  if (!order) throw new Error("ORDER_NOT_FOUND");
+  if (!order) throw codedError("ORDER_NOT_FOUND");
 
   assertCanEdit(order, userId);
   const removedItem = itemAt(order, itemIndex, itemName) as Record<string, unknown>;
@@ -475,31 +427,34 @@ export async function removeOrderItem(publicId: string, userId: string, itemInde
 }
 
 export async function undoRemoveOrderItem(publicId: string, userId: string, auditLogId: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("DATABASE_NOT_READY");
+  await connectMongo();
 
   const auditLog = await AuditLog.findById(auditLogId);
   if (!auditLog || auditLog.action !== "item_remove" || String(auditLog.targetId) !== publicId) {
-    throw new Error("INVALID_AUDIT_LOG");
+    throw codedError("INVALID_AUDIT_LOG");
   }
 
   const order = await Order.findOne({ publicId });
-  if (!order) throw new Error("ORDER_NOT_FOUND");
+  if (!order) throw codedError("ORDER_NOT_FOUND");
 
   const user = await User.findById(userId).lean();
   const isAdmin = user?.role === "admin";
 
   if (!isAdmin && (!order.authorId || String(order.authorId) !== String(userId))) {
-    throw new Error("FORBIDDEN");
+    throw codedError("FORBIDDEN");
+  }
+  // An admin removed it because the product was deleted; only an admin may bring it back
+  if (!isAdmin && (auditLog.before as { isAdminRemove?: boolean } | null)?.isAdminRemove) {
+    throw codedError("FORBIDDEN");
   }
   if (order.status === "archived") {
-    throw new Error("ORDER_LOCKED");
+    throw codedError("ORDER_LOCKED");
   }
 
   // Claim the log entry first so a double tap can't restore the item twice
   const claimed = await AuditLog.findOneAndDelete({ _id: auditLogId, action: "item_remove" });
   if (!claimed) {
-    throw new Error("ALREADY_UNDONE");
+    throw codedError("ALREADY_UNDONE");
   }
 
   const { fullItem, index } = claimed.before as { fullItem: Record<string, unknown>; index: number };
@@ -525,28 +480,20 @@ export async function undoRemoveOrderItem(publicId: string, userId: string, audi
 }
 
 export async function getOrderHistory(publicId: string): Promise<OrderHistoryEntry[]> {
-  const ready = await canUseMongo();
-  if (!ready) {
-    return [];
-  }
+  await connectMongo();
 
-  const auditLogs = await import("@/models").then(({ AuditLog }) =>
-    AuditLog.find({ targetType: "order", targetId: publicId }, { action: 1, note: 1, createdAt: 1, after: 1, before: 1 })
-      .sort({ createdAt: -1 })
-      .limit(12)
-      .lean(),
-  );
-
-  if (!auditLogs.length) {
-    return [];
-  }
+  const auditLogs = await AuditLog.find({ targetType: "order", targetId: publicId }, { action: 1, note: 1, createdAt: 1, after: 1, before: 1 })
+    .sort({ createdAt: -1 })
+    .limit(12)
+    .lean();
 
   return auditLogs.map((entry: Record<string, unknown>) => {
     const after = (entry.after ?? {}) as Record<string, unknown>;
     const before = (entry.before ?? {}) as Record<string, unknown>;
     return {
       id: String(entry._id),
-      date: new Date((entry.createdAt as string | number | Date) ?? Date.now()).toISOString().slice(0, 10),
+      // en-CA formats as YYYY-MM-DD
+      date: new Date((entry.createdAt as string | number | Date) ?? Date.now()).toLocaleDateString("en-CA", { timeZone: TIME_ZONE }),
       item: String(after.itemName || before.itemName || after.productName || entry.note || "Order update"),
       quantity: String(after.quantityLabel || before.quantityLabel || after.quantity || "-"),
       action: String(entry.action).replace(/_/g, " ").replace(/\b\w/g, (char: string) => char.toUpperCase()),
@@ -557,14 +504,11 @@ export async function getOrderHistory(publicId: string): Promise<OrderHistoryEnt
 }
 
 export async function getLatestOrderPublicId(userId?: string): Promise<string | null> {
-  const ready = await canUseMongo();
-  if (!ready) {
-    return null;
-  }
-
   if (!userId) {
     return null;
   }
+
+  await connectMongo();
 
   const latestOrder = await Order.findOne({ authorId: userId, status: { $ne: "archived" } }, { publicId: 1 })
     .sort({ updatedAt: -1 })
@@ -574,8 +518,11 @@ export async function getLatestOrderPublicId(userId?: string): Promise<string | 
 }
 
 export async function createNewOrder(userId: string, itemName: string, quantityLabel: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("Database not ready");
+  // Check the first item before saving, so bad input can't leave an empty list behind
+  const name = cleanItemName(itemName);
+  const label = cleanQuantityLabel(quantityLabel);
+
+  await connectMongo();
 
   const activeOrderError = "You already have an active order. Please archive it before creating a new one.";
   const existingActiveOrder = await Order.findOne({ authorId: userId, status: { $ne: "archived" } }).lean();
@@ -584,39 +531,10 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
   }
 
   const publicId = randomBytes(8).toString("base64url");
-  
-  const dateStr = new Date().toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  const parsedQuantity = parseInt(quantityLabel, 10);
-  const matchedProduct = await getOrCreateProduct(itemName);
-  const quantity = Number.isFinite(parsedQuantity) && parsedQuantity > 0 ? parsedQuantity : 1;
-
-  const newOrder = new Order({
-    publicId,
-    authorId: userId,
-    title: dateStr,
-    status: "draft",
-    items: [
-      {
-        productId: matchedProduct._id,
-        itemName: matchedProduct.name,
-        normalizedItemName: matchedProduct.normalizedName,
-        quantity,
-        quantityLabel,
-        unit: matchedProduct.unit || "",
-        unitPrice: matchedProduct.price,
-        lineTotal: typeof matchedProduct.price === "number" ? matchedProduct.price * quantity : 0,
-        status: typeof matchedProduct.price === "number" ? "priced" as const : "draft" as const,
-      },
-    ],
-  });
+  const title = new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: TIME_ZONE });
 
   try {
-    await newOrder.save();
+    await new Order({ publicId, authorId: userId, title, status: "draft" }).save();
   } catch (error) {
     // The one-open-order-per-user index catches a double submit that passed the check above
     const dup = error as { code?: number; keyPattern?: Record<string, unknown> };
@@ -626,24 +544,12 @@ export async function createNewOrder(userId: string, itemName: string, quantityL
     throw error;
   }
 
-  // Log the first item in history
-  await AuditLog.create({
-    actorId: userId,
-    targetType: "order",
-    targetId: publicId,
-    action: "item_add",
-    after: {
-      itemName: matchedProduct.name,
-      quantityLabel,
-    },
-    note: `Added ${matchedProduct.name}`,
-  });
-
+  await appendOrderItem(publicId, userId, name, label);
   return publicId;
 }
+
 export async function getAllUsersWithOrderCounts() {
-  const ready = await canUseMongo();
-  if (!ready) return [];
+  await connectMongo();
 
   const [users, counts] = await Promise.all([
     User.find({}, { username: 1, email: 1, avatarUrl: 1, role: 1 }).lean(),
@@ -662,67 +568,28 @@ export async function getAllUsersWithOrderCounts() {
 }
 
 export async function getOrdersByUser(userId: string): Promise<WorkspaceSession[]> {
-  const ready = await canUseMongo();
-  if (!ready) return [];
+  await connectMongo();
 
   const orders = await Order.find({ authorId: userId })
     .sort({ updatedAt: -1 })
     .lean();
 
-  return orders.map((order: Record<string, unknown>) => ({
-    id: String(order._id),
-    publicId: order.publicId as string | undefined,
-    title: (order.title as string | null) || `Order ${order.publicId as string}`,
-    preview: order.status === "draft" ? "Draft" : order.status === "paid" ? "Paid" : "Ready",
-    items: `${Array.isArray(order.items) ? order.items.length : 0} items`,
-    updated: formatRelativeDate((order.updatedAt ?? order.createdAt) as string | number | Date),
-    active: false,
-    status: (order.status as string) || "draft",
-  }));
-}
-
-export async function getCategories() {
-  const ready = await canUseMongo();
-  if (!ready) return [];
-  return Category.find({ active: true }).sort({ name: 1 }).lean();
-}
-
-export async function adminUpsertCategory(name: string, adminUserId?: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("Database not ready");
-
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  const category = await Category.findOneAndUpdate(
-    { slug },
-    { name, slug, active: true },
-    { upsert: true, new: true }
-  );
-
-  if (adminUserId && category) {
-    await AuditLog.create({
-      actorId: adminUserId,
-      targetType: "category",
-      targetId: String(category._id),
-      action: "category_upsert",
-      after: { name, slug },
-      note: `Admin upserted category ${name}`
-    });
-  }
-
-  return category;
+  return orders.map((order: LeanOrder) => ({ ...toSessionRow(order), active: false }));
 }
 
 export async function adminUpdateProduct(productId: string | null, data: Record<string, unknown>, adminUserId?: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("Database not ready");
+  await connectMongo();
 
-  const updateData: Record<string, any> = {
-    ...data,
-    active: true
-  };
+  // Only these fields come from the client; schema checks run on update too
+  const updateData: Record<string, unknown> = { active: true };
 
   if (typeof data.name === "string") {
-    updateData.normalizedName = data.name.toLowerCase();
+    updateData.name = data.name.trim();
+    updateData.normalizedName = data.name.trim().toLowerCase();
+  }
+
+  if (data.price !== undefined) {
+    updateData.price = data.price;
   }
 
   // Convert comma-separated aliases to the schema format if it's a string
@@ -735,7 +602,7 @@ export async function adminUpdateProduct(productId: string | null, data: Record<
   }
 
   if (productId) {
-    const product = await Product.findByIdAndUpdate(productId, updateData, { new: true });
+    const product = await Product.findByIdAndUpdate(productId, updateData, { returnDocument: "after", runValidators: true });
     
     // Sync price to draft orders if price was updated
     if (data.price !== undefined) {
@@ -780,8 +647,7 @@ export async function adminUpdateProduct(productId: string | null, data: Record<
 }
 
 export async function adminMergeProducts(sourceId: string, targetId: string, adminUserId?: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("Database not ready");
+  await connectMongo();
 
   const source = await Product.findById(sourceId);
   const target = await Product.findById(targetId);
@@ -813,9 +679,9 @@ export async function adminMergeProducts(sourceId: string, targetId: string, adm
   target.aliases = finalAliases;
   await target.save();
 
-  // Update all orders pointing to source to point to target
+  // Repoint open orders; paid (archived) orders keep their lines so they still match what was paid
   await Order.updateMany(
-    { "items.productId": source._id },
+    { "items.productId": source._id, status: { $ne: "archived" } },
     { 
       $set: { 
         "items.$[elem].productId": target._id,
@@ -845,8 +711,7 @@ export async function adminMergeProducts(sourceId: string, targetId: string, adm
 }
 
 export async function adminDeleteProduct(productId: string, adminUserId?: string) {
-  const ready = await canUseMongo();
-  if (!ready) throw new Error("Database not ready");
+  await connectMongo();
 
   const product = await Product.findByIdAndUpdate(productId, { active: false });
   if (!product) return null;
@@ -907,8 +772,7 @@ export async function adminDeleteProduct(productId: string, adminUserId?: string
 }
 
 export async function getAuditLogUsers() {
-  const ready = await canUseMongo();
-  if (!ready) return [];
+  await connectMongo();
 
   const distinctActorIds = await AuditLog.distinct("actorId");
   const users = await User.find({ _id: { $in: distinctActorIds } }, { username: 1, email: 1 }).lean();
@@ -922,8 +786,7 @@ export async function getPaginatedAuditLogs(
   selectedUsers: string[] = [], 
   selectedActions: string[] = []
 ) {
-  const ready = await canUseMongo();
-  if (!ready) return { logs: [], hasMore: false };
+  await connectMongo();
 
   const query: Record<string, any> = {};
 

@@ -24,7 +24,7 @@ export type SessionLineItem = {
   quantityLabel: string;
   unitPrice: number | null;
   lineTotal: number;
-  status: "draft" | "priced" | "finalized";
+  status: "draft" | "priced";
 };
 
 export type OrderHistoryEntry = {
@@ -48,7 +48,7 @@ export type SharedOrderView = {
   total: number;
   receiptUrl?: string | null;
   paymentMethod?: "cash" | "receipt" | null;
-  status: "draft" | "finalized" | "paid" | "unpaid" | "archived";
+  status: "draft" | "archived";
   isAuthor?: boolean;
 };
 
@@ -66,6 +66,6 @@ export type AddOrderItemResponse = {
     quantityLabel: string;
     unitPrice: number | null;
     lineTotal: number;
-    status: "draft" | "priced" | "finalized";
+    status: "draft" | "priced";
   };
 };

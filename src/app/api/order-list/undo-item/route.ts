@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { errorResponse } from "@/lib/api-errors";
 import { undoRemoveOrderItem } from "@/lib/pantry-db";
 
 export async function POST(req: Request) {
@@ -31,11 +32,6 @@ export async function POST(req: Request) {
     await undoRemoveOrderItem(publicId, (session.user as Record<string, unknown>).id as string, auditLogId);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Undo-item route error:", error);
-    const message = (error as Error).message;
-    if (message === "ORDER_LOCKED" || message === "ALREADY_UNDONE") {
-      return NextResponse.json({ error: message }, { status: 409 });
-    }
-    return NextResponse.json({ error: (error as Error).message || "Unable to undo action" }, { status: 500 });
+    return errorResponse(error, "Unable to undo action");
   }
 }

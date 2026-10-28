@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { Order, AuditLog } from "@/models";
 import { connectMongo } from "@/lib/db/mongodb";
+import { currentUnitPrice } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -76,12 +77,7 @@ export async function POST(req: Request) {
     let orderSubtotal = 0;
     if (Array.isArray(order.items)) {
       for (const item of order.items) {
-        const populatedProduct = item.productId as Record<string, unknown> | null;
-        const productPrice = populatedProduct && typeof populatedProduct === "object" && typeof populatedProduct.price === "number"
-          ? populatedProduct.price
-          : null;
-        
-        const unitPrice = productPrice !== null ? productPrice : (typeof item.unitPrice === "number" ? item.unitPrice : 0);
+        const unitPrice = currentUnitPrice(item) ?? 0;
         const quantity = typeof item.quantity === "number" ? item.quantity : 1;
         const lineTotal = unitPrice * quantity;
 

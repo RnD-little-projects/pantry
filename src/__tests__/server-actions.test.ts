@@ -8,7 +8,6 @@ const m = vi.hoisted(() => ({
   db: {
     adminUpdateProduct: vi.fn(),
     adminDeleteProduct: vi.fn(),
-    adminUpsertCategory: vi.fn(),
     adminMergeProducts: vi.fn(),
     getOrdersByUser: vi.fn(),
     createNewOrder: vi.fn(),
@@ -38,9 +37,7 @@ import { fetchUserOrdersAction } from "../app/admin/orders/actions";
 import {
   saveProductAction,
   deleteProductAction,
-  saveCategoryAction,
   mergeProductsAction,
-  updateProductCategoryAction,
 } from "../app/admin/products/actions";
 import {
   getUsers,
@@ -145,9 +142,7 @@ describe("admin product actions", () => {
     const denied = { success: false, error: "Error: Unauthorized" };
     expect(await saveProductAction({})).toEqual(denied);
     expect(await deleteProductAction("p")).toEqual(denied);
-    expect(await saveCategoryAction("c")).toEqual(denied);
     expect(await mergeProductsAction("a", "b")).toEqual(denied);
-    expect(await updateProductCategoryAction("p", "c")).toEqual(denied);
     expect(m.db.adminUpdateProduct).not.toHaveBeenCalled();
     expect(m.db.adminDeleteProduct).not.toHaveBeenCalled();
   });
@@ -173,33 +168,20 @@ describe("admin product actions", () => {
     expect(m.db.adminDeleteProduct).toHaveBeenCalledWith("p1", "admin1");
   });
 
-  it("saveCategoryAction returns the category id", async () => {
-    m.db.adminUpsertCategory.mockResolvedValueOnce({ _id: "c1" });
-    expect(await saveCategoryAction("Dairy")).toEqual({ success: true, id: "c1" });
-  });
-
   it("mergeProductsAction calls adminMergeProducts", async () => {
     expect(await mergeProductsAction("a", "b")).toEqual({ success: true });
     expect(m.db.adminMergeProducts).toHaveBeenCalledWith("a", "b", "admin1");
-  });
-
-  it("updateProductCategoryAction updates only the category", async () => {
-    await updateProductCategoryAction("p1", null);
-    expect(m.db.adminUpdateProduct).toHaveBeenCalledWith("p1", { categoryId: null }, "admin1");
   });
 
   it("all product actions return an error result on failure", async () => {
     const fail = () => Promise.reject(new Error("nope"));
     m.db.adminUpdateProduct.mockImplementation(fail);
     m.db.adminDeleteProduct.mockImplementation(fail);
-    m.db.adminUpsertCategory.mockImplementation(fail);
     m.db.adminMergeProducts.mockImplementation(fail);
     const expected = { success: false, error: "Error: nope" };
     expect(await saveProductAction({})).toEqual(expected);
     expect(await deleteProductAction("p")).toEqual(expected);
-    expect(await saveCategoryAction("c")).toEqual(expected);
     expect(await mergeProductsAction("a", "b")).toEqual(expected);
-    expect(await updateProductCategoryAction("p", "c")).toEqual(expected);
   });
 });
 

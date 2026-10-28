@@ -68,10 +68,11 @@ describe("POST /api/order-list/add-item", () => {
     await expectStatus(await addItem(body.clone()), 400, { error: "short" });
     m.db.appendOrderItem.mockRejectedValueOnce(coded("Forbidden", "FORBIDDEN"));
     await expectStatus(await addItem(body.clone()), 403);
-    m.db.appendOrderItem.mockRejectedValueOnce(coded("ORDER_NOT_FOUND"));
+    m.db.appendOrderItem.mockRejectedValueOnce(coded("ORDER_NOT_FOUND", "ORDER_NOT_FOUND"));
     await expectStatus(await addItem(body.clone()), 404);
-    m.db.appendOrderItem.mockRejectedValueOnce(coded("boom"));
-    await expectStatus(await addItem(body.clone()), 500, { error: "boom", code: "UNKNOWN_ERROR" });
+    // Unknown errors are logged, never shown
+    m.db.appendOrderItem.mockRejectedValueOnce(coded("E11000 duplicate key"));
+    await expectStatus(await addItem(body.clone()), 500, { error: "Unable to add item" });
   });
 });
 
@@ -98,8 +99,10 @@ describe("POST /api/order-list/remove-item", () => {
     await expectStatus(await removeItem(json(body)), 409);
     m.db.removeOrderItem.mockRejectedValueOnce(coded("locked", "ORDER_LOCKED"));
     await expectStatus(await removeItem(json(body)), 409);
-    m.db.removeOrderItem.mockRejectedValueOnce(coded("ITEM_NOT_FOUND"));
-    await expectStatus(await removeItem(json(body)), 500, { error: "ITEM_NOT_FOUND" });
+    m.db.removeOrderItem.mockRejectedValueOnce(coded("ITEM_NOT_FOUND", "ITEM_NOT_FOUND"));
+    await expectStatus(await removeItem(json(body)), 404, { error: "ITEM_NOT_FOUND" });
+    m.db.removeOrderItem.mockRejectedValueOnce(coded("ORDER_NOT_FOUND", "ORDER_NOT_FOUND"));
+    await expectStatus(await removeItem(json(body)), 404);
   });
 });
 
@@ -118,10 +121,12 @@ describe("POST /api/order-list/undo-item", () => {
     signedIn();
     await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 200, { success: true });
     expect(m.db.undoRemoveOrderItem).toHaveBeenCalledWith("p", "u1", "l");
-    m.db.undoRemoveOrderItem.mockRejectedValueOnce(new Error("ALREADY_UNDONE"));
+    m.db.undoRemoveOrderItem.mockRejectedValueOnce(coded("ALREADY_UNDONE", "ALREADY_UNDONE"));
     await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 409, { error: "ALREADY_UNDONE" });
-    m.db.undoRemoveOrderItem.mockRejectedValueOnce(new Error("INVALID_AUDIT_LOG"));
-    await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 500, { error: "INVALID_AUDIT_LOG" });
+    m.db.undoRemoveOrderItem.mockRejectedValueOnce(coded("INVALID_AUDIT_LOG", "INVALID_AUDIT_LOG"));
+    await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 404);
+    m.db.undoRemoveOrderItem.mockRejectedValueOnce(coded("FORBIDDEN", "FORBIDDEN"));
+    await expectStatus(await undoItem(json({ publicId: "p", auditLogId: "l" })), 403);
   });
 });
 
@@ -147,7 +152,7 @@ describe("POST /api/order-list/update-item", () => {
     await expectStatus(await updateItem(json(body)), 400);
     m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("f", "FORBIDDEN"));
     await expectStatus(await updateItem(json(body)), 403);
-    m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("ITEM_NOT_FOUND"));
+    m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("ITEM_NOT_FOUND", "ITEM_NOT_FOUND"));
     await expectStatus(await updateItem(json(body)), 404);
     m.db.updateOrderItemQuantity.mockRejectedValueOnce(coded("x"));
     await expectStatus(await updateItem(json(body)), 500);

@@ -5,7 +5,7 @@ import { connectMongo } from "@/lib/db/mongodb";
 import { User } from "@/models";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
-import { MIN_PASSWORD_LENGTH } from "@/lib/utils";
+import { MIN_PASSWORD_LENGTH, escapeRegex } from "@/lib/utils";
 
 export async function registerAction(formData: FormData) {
   if (process.env.ALLOW_REGISTRATION === "false") {
@@ -33,8 +33,10 @@ export async function registerAction(formData: FormData) {
 
     await connectMongo();
 
+    // Case-insensitive, like admin-created users, so "Bob" and "bob" can't both exist
+    const usernameMatch = { username: { $regex: new RegExp(`^${escapeRegex(username)}$`, "i") } };
     const existingUser = await User.findOne({
-      $or: email ? [{ username }, { email }] : [{ username }],
+      $or: email ? [usernameMatch, { email }] : [usernameMatch],
     })
       .select("_id")
       .lean();
@@ -71,8 +73,12 @@ export async function registerAction(formData: FormData) {
       }
       throw signInErr;
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Registration failed", error);
-    return { error: error.message || "Registration failed. Please try again." };
+    // Two signups for the same name at once: the unique index catches the second
+    if ((error as { code?: number }).code === 11000) {
+      return { error: "Username or email is already in use." };
+    }
+    return { error: "Registration failed. Please try again." };
   }
 }

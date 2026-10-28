@@ -108,7 +108,7 @@ describe("registerAction validation", () => {
     it("rejects a taken username or email", async () => {
       vi.mocked(User.findOne).mockReturnValueOnce(leanResult({ _id: "x" }));
       expect(await registerAction(form(valid))).toEqual({ error: "Username or email is already in use." });
-      expect(User.findOne).toHaveBeenCalledWith({ $or: [{ username: "alice" }, { email: "alice@x.com" }] });
+      expect(User.findOne).toHaveBeenCalledWith({ $or: [{ username: { $regex: /^alice$/i } }, { email: "alice@x.com" }] });
     });
 
     it("creates a regular user and signs them in", async () => {
@@ -135,9 +135,16 @@ describe("registerAction validation", () => {
       expect(await registerAction(form(valid))).toEqual({ error: "Successfully registered but failed auto sign-in." });
     });
 
-    it("returns the error message when the database fails", async () => {
+    it("hides database errors from the user", async () => {
       vi.mocked(connectMongo).mockRejectedValueOnce(new Error("db down"));
-      expect(await registerAction(form(valid))).toEqual({ error: "db down" });
+      expect(await registerAction(form(valid))).toEqual({ error: "Registration failed. Please try again." });
+    });
+
+    it("reports a duplicate from two signups at once as a taken name", async () => {
+      vi.mocked(User.findOne).mockReturnValueOnce(leanResult(null));
+      vi.mocked(User.countDocuments).mockResolvedValueOnce(1 as never);
+      vi.mocked(User.create).mockRejectedValueOnce(Object.assign(new Error("E11000 duplicate key"), { code: 11000 }));
+      expect(await registerAction(form(valid))).toEqual({ error: "Username or email is already in use." });
     });
   });
 });

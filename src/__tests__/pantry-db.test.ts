@@ -21,9 +21,8 @@ const m = vi.hoisted(() => {
     orderSave,
     Order,
     AuditLog: { create: vi.fn(), findById: vi.fn(), findOneAndDelete: vi.fn(), find: vi.fn(), distinct: vi.fn() },
-    Product: { find: vi.fn(), findOne: vi.fn(), findById: vi.fn(), findByIdAndUpdate: vi.fn(), create: vi.fn() },
+    Product: { find: vi.fn(), findOne: vi.fn(), findOneAndUpdate: vi.fn(), findById: vi.fn(), findByIdAndUpdate: vi.fn(), create: vi.fn() },
     User: { findById: vi.fn(), find: vi.fn() },
-    Category: { find: vi.fn(), findOneAndUpdate: vi.fn() },
     connectMongo: vi.fn(),
   };
 });
@@ -34,7 +33,6 @@ vi.mock("../models", () => ({
   Order: m.Order,
   Product: m.Product,
   User: m.User,
-  Category: m.Category,
 }));
 
 import * as db from "../lib/pantry-db";
@@ -53,64 +51,28 @@ function orderDoc(overrides: Record<string, unknown> = {}) {
 }
 
 describe("pantry-db", () => {
-  const OLD_URI = process.env.MONGODB_URI;
-
   beforeEach(() => {
     vi.resetAllMocks();
-    process.env.MONGODB_URI = "mongodb://localhost/test";
     m.connectMongo.mockResolvedValue(true);
   });
 
-  afterEach(() => {
-    if (OLD_URI === undefined) delete process.env.MONGODB_URI;
-    else process.env.MONGODB_URI = OLD_URI;
-  });
-
-  describe("when the database is unavailable", () => {
-    it("read functions return empty fallbacks without MONGODB_URI", async () => {
-      delete process.env.MONGODB_URI;
-      expect(await db.getOverviewSessions()).toEqual([]);
-      expect(await db.getMarketItems()).toEqual([]);
-      expect(await db.getMarketItemMetrics()).toEqual({ total: 0, pending: 0, valuated: 0 });
-      expect(await db.getOrderHistory("pub1")).toEqual([]);
-      expect(await db.getLatestOrderPublicId()).toBeNull();
-      expect(await db.getAllUsersWithOrderCounts()).toEqual([]);
-      expect(await db.getOrdersByUser("u")).toEqual([]);
-      expect(await db.getCategories()).toEqual([]);
-      expect(await db.getAuditLogUsers()).toEqual([]);
-      expect(await db.getPaginatedAuditLogs()).toEqual({ logs: [], hasMore: false });
-    });
-
-    it("treats a failed connection as not ready", async () => {
-      m.connectMongo.mockRejectedValueOnce(new Error("down"));
-      expect(await db.getMarketItems()).toEqual([]);
-    });
-
-    it("write functions throw", async () => {
-      delete process.env.MONGODB_URI;
-      await expect(db.removeOrderItem("p", "u", 0, "Rice")).rejects.toThrow("DATABASE_NOT_READY");
-      await expect(db.undoRemoveOrderItem("p", "u", "a")).rejects.toThrow("DATABASE_NOT_READY");
-      await expect(db.updateOrderItemQuantity("p", "u", 0, "Rice", "1")).rejects.toThrow("DATABASE_NOT_READY");
-      await expect(db.createNewOrder("u", "Rice", "1")).rejects.toThrow("Database not ready");
-      await expect(db.adminUpsertCategory("x")).rejects.toThrow("Database not ready");
-      await expect(db.adminUpdateProduct(null, {})).rejects.toThrow("Database not ready");
-      await expect(db.adminMergeProducts("a", "b")).rejects.toThrow("Database not ready");
-      await expect(db.adminDeleteProduct("a")).rejects.toThrow("Database not ready");
-    });
+  it("lets a database outage surface instead of showing empty data", async () => {
+    m.connectMongo.mockRejectedValueOnce(new Error("down"));
+    await expect(db.getMarketItems()).rejects.toThrow("down");
   });
 
   describe("getOverviewSessions", () => {
     it("queries by author when a userId is given and maps sessions", async () => {
       m.Order.find.mockReturnValueOnce(
         q([
-          { _id: "o1", publicId: "p1", title: "", items: [{}, {}], status: "paid", updatedAt: hoursAgo(2) },
+          { _id: "o1", publicId: "p1", title: "", items: [{}, {}], status: "archived", updatedAt: hoursAgo(2) },
           { _id: "o2", publicId: "p2", title: "T", items: null, status: "draft", createdAt: hoursAgo(48) },
         ]),
       );
       const res = await db.getOverviewSessions("u1");
       expect(m.Order.find.mock.calls[0][0]).toEqual({ authorId: "u1" });
       expect(res[0]).toMatchObject({
-        id: "o1", title: "Order p1", preview: "Paid", items: "2 items", updated: "2h ago", active: true, status: "paid",
+        id: "o1", title: "Order p1", preview: "Paid", items: "2 items", updated: "2h ago", active: true, status: "archived",
       });
       expect(res[1]).toMatchObject({ title: "T", preview: "Draft", items: "0 items", updated: "2d ago", active: true });
     });
@@ -253,28 +215,20 @@ describe("pantry-db", () => {
       expect(res).toMatchObject({ id: "0", itemName: "Rice", unitPrice: 50, lineTotal: 150, status: "priced" });
     });
 
-    it("defaults quantity to 1 and creates an unknown product as draft", async () => {
+    it("defaults quantity to 1 and creates or reactivates an unknown product in one atomic upsert", async () => {
       const order = orderDoc({ authorId: "u" });
       m.Order.findOne.mockResolvedValueOnce(order);
-      m.Product.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
-      m.Product.create.mockResolvedValueOnce({ _id: "new", name: "Kale", normalizedName: "kale" });
+      m.Product.findOne.mockResolvedValueOnce(null);
+      m.Product.findOneAndUpdate.mockResolvedValueOnce({ _id: "new", name: "Kale", normalizedName: "kale" });
       const res = await db.appendOrderItem("p", "u", "Kale", "a bunch");
-      expect(m.Product.create).toHaveBeenCalledWith({ name: "Kale", normalizedName: "kale", active: true });
+      expect(m.Product.findOneAndUpdate).toHaveBeenCalledWith(
+        { normalizedName: "kale" },
+        { $set: { active: true }, $setOnInsert: { name: "Kale" } },
+        { upsert: true, returnDocument: "after" },
+      );
       expect(order.items[0]).toMatchObject({ quantity: 1, lineTotal: 0, status: "draft" });
       expect(res.unitPrice).toBeNull();
     });
-
-    it("reactivates an inactive product with the same name", async () => {
-      const order = orderDoc({ authorId: "u" });
-      const inactive = { _id: "old", name: "Kale", normalizedName: "kale", active: false, save: vi.fn() };
-      m.Order.findOne.mockResolvedValueOnce(order);
-      m.Product.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(inactive);
-      await db.appendOrderItem("p", "u", "Kale", "1");
-      expect(inactive.active).toBe(true);
-      expect(inactive.save).toHaveBeenCalled();
-      expect(m.Product.create).not.toHaveBeenCalled();
-    });
-
   });
 
   describe("updateOrderItemQuantity", () => {
@@ -373,6 +327,15 @@ describe("pantry-db", () => {
       await expect(db.undoRemoveOrderItem("p", "u", "l")).rejects.toThrow("FORBIDDEN");
     });
 
+    it("only lets an admin undo a removal made by an admin", async () => {
+      const adminLog = { ...log, before: { ...log.before, isAdminRemove: true } };
+      m.AuditLog.findById.mockResolvedValueOnce(adminLog);
+      m.Order.findOne.mockResolvedValueOnce(orderDoc({ authorId: "u" }));
+      m.User.findById.mockReturnValueOnce(q({ role: "user" }));
+      await expect(db.undoRemoveOrderItem("p", "u", "l")).rejects.toThrow("FORBIDDEN");
+      expect(m.AuditLog.findOneAndDelete).not.toHaveBeenCalled();
+    });
+
     it("re-inserts the item at its index and deletes the remove log", async () => {
       const order = orderDoc({ authorId: "x", items: [{ itemName: "A" }, { itemName: "B" }] });
       m.AuditLog.findById.mockResolvedValueOnce(log);
@@ -450,22 +413,32 @@ describe("pantry-db", () => {
       await expect(db.createNewOrder("u", "Rice", "1")).rejects.toThrow("already have an active order");
     });
 
-    it("creates a draft order with the first item", async () => {
-      m.Order.findOne.mockReturnValueOnce(q(null));
+    it("creates a draft order dated in Manila time, then adds the first item", async () => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-10-28T23:30:00Z")); // 07:30 on Oct 29 in Manila
+      let created: Record<string, any> = {};
+      m.orderSave.mockImplementationOnce(function (this: Record<string, any>) {
+        created = Object.assign(this, { items: [], markModified: vi.fn(), save: vi.fn() });
+      });
+      m.Order.findOne.mockReturnValueOnce(q(null)).mockImplementationOnce(async () => created);
       m.Product.findOne.mockResolvedValueOnce({ _id: "prod", name: "Rice", normalizedName: "rice", price: 20 });
-      const publicId = await db.createNewOrder("u", "Rice", "2");
+      const publicId = await db.createNewOrder("u", "Rice", " 2 ");
+      vi.useRealTimers();
       expect(publicId).toMatch(/^[A-Za-z0-9_-]{11}$/);
-      const doc = m.Order.mock.calls[0][0] as Record<string, any>;
-      expect(doc).toMatchObject({ publicId, authorId: "u", status: "draft" });
-      expect(doc).not.toHaveProperty("isPublic");
-      expect(doc.items[0]).toMatchObject({ itemName: "Rice", quantity: 2, unitPrice: 20, lineTotal: 40, status: "priced" });
-      expect(m.orderSave).toHaveBeenCalled();
+      expect(m.Order.mock.calls[0][0]).toEqual({ publicId, authorId: "u", title: "October 29, 2026", status: "draft" });
+      expect(created.items[0]).toMatchObject({ itemName: "Rice", quantity: 2, quantityLabel: "2", unitPrice: 20, lineTotal: 40, status: "priced" });
       expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ action: "item_add", targetId: publicId }));
+    });
+
+    it("checks the first item like any other, before saving anything", async () => {
+      const err = await db.createNewOrder("u", "x", "1").catch((e) => e);
+      expect(err.code).toBe("ITEM_NAME_TOO_SHORT");
+      await expect(db.createNewOrder("u", "Rice", "   ")).rejects.toThrow("Quantity label is required");
+      expect(m.orderSave).not.toHaveBeenCalled();
     });
 
     it("reports the active-order error when a double submit hits the unique index", async () => {
       m.Order.findOne.mockReturnValueOnce(q(null));
-      m.Product.findOne.mockResolvedValueOnce({ _id: "prod", name: "Rice", normalizedName: "rice", price: 20 });
       m.orderSave.mockRejectedValueOnce(Object.assign(new Error("E11000"), { code: 11000, keyPattern: { authorId: 1, status: 1 } }));
       await expect(db.createNewOrder("u", "Rice", "1")).rejects.toThrow("already have an active order");
       expect(m.AuditLog.create).not.toHaveBeenCalled();
@@ -486,37 +459,10 @@ describe("pantry-db", () => {
 
   describe("getOrdersByUser", () => {
     it("maps orders", async () => {
-      m.Order.find.mockReturnValueOnce(q([{ _id: "o1", publicId: "p", status: "paid", items: [{}], updatedAt: new Date() }]));
+      m.Order.find.mockReturnValueOnce(q([{ _id: "o1", publicId: "p", status: "archived", items: [{}], updatedAt: new Date() }]));
       expect((await db.getOrdersByUser("u"))[0]).toMatchObject({
-        id: "o1", title: "Order p", preview: "Paid", items: "1 items", active: false, status: "paid",
+        id: "o1", title: "Order p", preview: "Paid", items: "1 items", active: false, status: "archived",
       });
-    });
-  });
-
-  describe("getCategories", () => {
-    it("returns active categories", async () => {
-      m.Category.find.mockReturnValueOnce(q([{ name: "Dairy" }]));
-      expect(await db.getCategories()).toEqual([{ name: "Dairy" }]);
-      expect(m.Category.find).toHaveBeenCalledWith({ active: true });
-    });
-  });
-
-  describe("adminUpsertCategory", () => {
-    it("upserts by slug and logs when an admin is given", async () => {
-      m.Category.findOneAndUpdate.mockResolvedValueOnce({ _id: "c1" });
-      await db.adminUpsertCategory("Fresh Fruit!", "admin");
-      expect(m.Category.findOneAndUpdate).toHaveBeenCalledWith(
-        { slug: "fresh-fruit-" },
-        { name: "Fresh Fruit!", slug: "fresh-fruit-", active: true },
-        { upsert: true, new: true },
-      );
-      expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ action: "category_upsert", targetId: "c1" }));
-    });
-
-    it("does not log without an admin", async () => {
-      m.Category.findOneAndUpdate.mockResolvedValueOnce({ _id: "c1" });
-      await db.adminUpsertCategory("Dairy");
-      expect(m.AuditLog.create).not.toHaveBeenCalled();
     });
   });
 
@@ -542,6 +488,16 @@ describe("pantry-db", () => {
         { arrayFilters: [{ "elem.productId": "p1" }] },
       );
       expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ action: "product_update" }));
+    });
+
+    it("writes only known fields and runs schema checks", async () => {
+      m.Product.findByIdAndUpdate.mockResolvedValueOnce({ name: "Rice" });
+      await db.adminUpdateProduct("p1", { price: -5, normalizedName: "x", notes: "y" });
+      expect(m.Product.findByIdAndUpdate).toHaveBeenCalledWith(
+        "p1",
+        { active: true, price: -5 },
+        { returnDocument: "after", runValidators: true },
+      );
     });
 
     it("marks synced items as draft when price is cleared, and skips sync when price is untouched", async () => {
@@ -570,7 +526,7 @@ describe("pantry-db", () => {
       expect(target.aliases.map((a: { value: string }) => a.value).sort()).toEqual(["bigas", "grain", "kanin"]);
       expect(target.save).toHaveBeenCalled();
       expect(m.Order.updateMany).toHaveBeenCalledWith(
-        { "items.productId": "a" },
+        { "items.productId": "a", status: { $ne: "archived" } },
         { $set: { "items.$[elem].productId": "b", "items.$[elem].itemName": "Rice" } },
         { arrayFilters: [{ "elem.productId": "a" }] },
       );

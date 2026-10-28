@@ -17,7 +17,6 @@ vi.mock("../models", () => ({
   Order: { findOne: vi.fn(), find: vi.fn() },
   Product: { find: vi.fn(), findOne: vi.fn() },
   User: { findById: vi.fn() },
-  Category: {},
 }));
 
 import { Order } from "../models";
@@ -37,13 +36,6 @@ describe("pantry-db validation / authorization", () => {
     } else {
       process.env.MONGODB_URI = OLD_URI;
     }
-  });
-
-  it("appendOrderItem throws DATABASE_NOT_READY without MONGODB_URI", async () => {
-    delete process.env.MONGODB_URI;
-    await expect(appendOrderItem("pub1", "user1", "Rice", "2kg")).rejects.toThrow(
-      "DATABASE_NOT_READY",
-    );
   });
 
   it("appendOrderItem rejects item names shorter than 2 characters", async () => {
@@ -92,8 +84,4 @@ describe("pantry-db validation / authorization", () => {
     expect(err.code).toBe("FORBIDDEN");
   });
 
-  it("getSharedOrder throws DATABASE_NOT_READY without MONGODB_URI", async () => {
-    delete process.env.MONGODB_URI;
-    await expect(getSharedOrder("pub1")).rejects.toThrow("DATABASE_NOT_READY");
-  });
 });

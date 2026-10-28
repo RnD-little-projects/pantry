@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { connectMongo } from "./lib/db/mongodb";
 import { User } from "./models";
 
-const authConfig = {
+export const authConfig = {
   session: { strategy: "jwt" as const },
   pages: {
     signIn: "/login",
@@ -90,19 +90,18 @@ const authConfig = {
           }
         }
 
-        // Find by provider account ID or email
-        const existing = await User.findOne({
-          $or: [
-            { providerAccountId: account.providerAccountId },
-            { email: user.email?.toLowerCase() }
-          ]
-        });
+        const existing = await User.findOne({ providerAccountId: account.providerAccountId });
 
         if (existing && (!existing.isActive || existing.isDeleted)) {
           return false;
         }
 
         if (!existing) {
+          // Emails on password accounts are unverified, so never sign a Google user into one by email
+          if (user.email && (await User.exists({ email: user.email.toLowerCase() }))) {
+            return "/login?error=GoogleEmailInUse";
+          }
+
           if (process.env.ALLOW_REGISTRATION === "false") {
             return false;
           }
@@ -134,18 +133,8 @@ const authConfig = {
           (user as any).role = existing.role;
           user.name = existing.username;
 
-          // Update existing user with Google details if not present
-          let changed = false;
-          if (!existing.providerAccountId) {
-            existing.providerAccountId = account.providerAccountId;
-            existing.provider = "google";
-            changed = true;
-          }
           if (!existing.avatarUrl && user.image) {
             existing.avatarUrl = user.image;
-            changed = true;
-          }
-          if (changed) {
             await existing.save();
           }
         }
@@ -205,13 +194,14 @@ const authConfig = {
         session.user.email = token.email as string;
       }
 
-      // DB Level check for forcePasswordChange
+      // The database wins over the token, so an admin's change to role or status applies on the next request
       if (session.user?.id) {
         try {
           await connectMongo();
-          const dbUser = await User.findById(session.user.id).select("forcePasswordChange isActive isDeleted").lean();
-          
+          const dbUser = await User.findById(session.user.id).select("role forcePasswordChange isActive isDeleted").lean();
+
           if (dbUser) {
+            session.user.role = dbUser.role ?? "user";
             session.user.forcePasswordChange = dbUser.forcePasswordChange ?? false;
             
             // Also handle deactivated/deleted users at session level

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { auth } from "@/auth";
+import { errorResponse } from "@/lib/api-errors";
 import { appendOrderItem } from "@/lib/pantry-db";
 import type { AddOrderItemRequest } from "@/lib/pantry-types";
 
@@ -10,7 +11,7 @@ export async function POST(req: Request) {
     session = await auth();
   } catch (error) {
     console.error("Add-item auth error:", error);
-    return NextResponse.json({ error: "Unable to authenticate request", details: (error as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to authenticate request" }, { status: 500 });
   }
 
   if (!session?.user) {
@@ -36,24 +37,6 @@ export async function POST(req: Request) {
     const item = await appendOrderItem(publicId, (session.user as Record<string, unknown>).id as string, itemName, quantityLabel);
     return NextResponse.json({ item });
   } catch (error) {
-    console.error("Add-item route error:", error);
-    const code = (error as Record<string, unknown>)?.code;
-    if (code === "ITEM_NAME_TOO_SHORT" || code === "QUANTITY_LABEL_TOO_SHORT") {
-      return NextResponse.json({ error: (error as Error).message }, { status: 400 });
-    }
-
-    if (code === "ORDER_LOCKED" || code === "ITEM_CHANGED") {
-      return NextResponse.json({ error: (error as Error).message }, { status: 409 });
-    }
-
-    if (code === "FORBIDDEN") {
-      return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
-    }
-
-    if ((error as Error).message === "ORDER_NOT_FOUND") {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
-    return NextResponse.json({ error: (error as Error).message || "Unable to add item", code: code ?? "UNKNOWN_ERROR" }, { status: 500 });
+    return errorResponse(error, "Unable to add item");
   }
 }
