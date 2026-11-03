@@ -72,8 +72,8 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
       toast("Password Reset Successful. A temporary password has been generated.", "success");
       // Update local state if needed
       setUsers(users.map(u => u._id === userId ? { ...u, forcePasswordChange: true } : u));
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
     }
   };
 
@@ -82,8 +82,8 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
       await updateUserStatus(user._id, { isActive: !user.isActive });
       setUsers(users.map(u => u._id === user._id ? { ...u, isActive: !u.isActive } : u));
       toast(user.isActive ? "User Deactivated" : "User Activated", "success");
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
     }
   };
 
@@ -93,8 +93,8 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
       setUsers(users.filter(u => u._id !== userId));
       setIsDeleting(null);
       toast("User Deleted. The user has been soft-deleted from the system.", "success");
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
     }
   };
 
@@ -110,12 +110,16 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
     };
 
     try {
-      await updateUserInfo(editingUser._id, data);
+      const result = await updateUserInfo(editingUser._id, data);
+      if (result.error) {
+        toast(result.error, "error");
+        return;
+      }
       setUsers(users.map(u => u._id === editingUser._id ? { ...u, ...data } : u));
       setEditingUser(null);
       toast("User Updated successfully.", "success");
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
     }
   };
 
@@ -131,12 +135,16 @@ export default function UserManagementClient({ initialUsers }: { initialUsers: U
     };
 
     try {
-      await createUser(data);
+      const result = await createUser(data);
+      if (result.error) {
+        toast(result.error, "error");
+        return;
+      }
       toast("User Created successfully.", "success");
       setIsCreating(false);
       window.location.reload(); 
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
     }
   };
 

@@ -12,7 +12,7 @@ const m = vi.hoisted(() => ({
     getOrdersByUser: vi.fn(),
     createNewOrder: vi.fn(),
   },
-  User: { find: vi.fn(), findOne: vi.fn(), findByIdAndUpdate: vi.fn(), create: vi.fn() },
+  User: { find: vi.fn(), findOne: vi.fn(), findByIdAndUpdate: vi.fn(), create: vi.fn(), exists: vi.fn() },
   AuditLog: { create: vi.fn() },
   hash: vi.fn(),
 }));
@@ -90,20 +90,31 @@ describe("signInAction", () => {
 });
 
 describe("startOrderAction", () => {
-  it("throws when signed out, whatever the form says", async () => {
+  it("returns an error when signed out, whatever the form says", async () => {
     m.auth.mockResolvedValueOnce(null);
-    await expect(startOrderAction(form({ itemName: "Rice", quantity: "1" }))).rejects.toThrow("Unauthorized");
+    expect(await startOrderAction(null, form({ itemName: "Rice", quantity: "1" }))).toEqual({ error: "Your session expired. Sign in again." });
   });
 
   it("requires item name and quantity", async () => {
     m.auth.mockResolvedValueOnce({ user: { id: "u1" } });
-    await expect(startOrderAction(form({ itemName: "Rice" }))).rejects.toThrow("Missing item name or quantity");
+    expect(await startOrderAction(null, form({ itemName: "Rice" }))).toEqual({ error: "Enter an item and a quantity." });
+  });
+
+  it("shows the active-order message but hides unexpected errors", async () => {
+    m.auth.mockResolvedValue({ user: { id: "u1" } });
+    m.db.createNewOrder.mockRejectedValueOnce(new Error("You already have an active order. Please archive it before creating a new one."));
+    expect(await startOrderAction(null, form({ itemName: "Rice", quantity: "1" }))).toEqual({
+      error: "You already have an active order. Please archive it before creating a new one.",
+    });
+    m.db.createNewOrder.mockRejectedValueOnce(new Error("MongoServerError: connection reset"));
+    vi.spyOn(console, "error").mockImplementationOnce(() => {});
+    expect(await startOrderAction(null, form({ itemName: "Rice", quantity: "1" }))).toEqual({ error: "Couldn't start your list. Try again." });
   });
 
   it("uses the session user, creates the order and redirects", async () => {
     m.auth.mockResolvedValueOnce({ user: { id: "session-user" } });
     m.db.createNewOrder.mockResolvedValueOnce("pub9");
-    await startOrderAction(form({ itemName: "Rice", quantity: "2" }));
+    await startOrderAction(null, form({ itemName: "Rice", quantity: "2" }));
     expect(m.db.createNewOrder).toHaveBeenCalledWith("session-user", "Rice", "2");
     expect(m.redirect).toHaveBeenCalledWith("/order-list/pub9");
   });
@@ -235,20 +246,30 @@ describe("admin user actions", () => {
 
     it("updateUserInfo updates and logs", async () => {
       m.User.findByIdAndUpdate.mockResolvedValueOnce({ username: "old" });
-      await updateUserInfo("u1", { username: "new", role: "cashier" });
+      m.User.exists.mockResolvedValueOnce(null);
+      expect(await updateUserInfo("u1", { username: "new", role: "cashier" })).toEqual({ success: true });
       expect(m.AuditLog.create).toHaveBeenCalledWith(expect.objectContaining({ after: { username: "new", role: "cashier" } }));
+    });
+
+    it("updateUserInfo rejects a username or email another user has", async () => {
+      m.User.exists.mockResolvedValueOnce({ _id: "u2" });
+      expect(await updateUserInfo("u1", { username: "Ann", role: "user" })).toEqual({ error: "Username already exists." });
+      m.User.exists.mockResolvedValueOnce(null).mockResolvedValueOnce({ _id: "u2" });
+      expect(await updateUserInfo("u1", { username: "ann", email: "A@B.c", role: "user" })).toEqual({ error: "Email already exists." });
+      expect(m.User.exists).toHaveBeenLastCalledWith({ _id: { $ne: "u1" }, email: "a@b.c" });
+      expect(m.User.findByIdAndUpdate).not.toHaveBeenCalled();
     });
 
     describe("createUser", () => {
       it("requires a username", async () => {
-        await expect(createUser({})).rejects.toThrow("Username is required.");
+        expect(await createUser({})).toEqual({ error: "Username is required." });
       });
 
       it("rejects duplicate usernames and emails", async () => {
         m.User.findOne.mockResolvedValueOnce({ _id: "x" });
-        await expect(createUser({ username: "ann" })).rejects.toThrow("Username already exists.");
+        expect(await createUser({ username: "ann" })).toEqual({ error: "Username already exists." });
         m.User.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({ _id: "x" });
-        await expect(createUser({ username: "ann", email: "a@b.c" })).rejects.toThrow("Email already exists.");
+        expect(await createUser({ username: "ann", email: "a@b.c" })).toEqual({ error: "Email already exists." });
       });
 
       it("escapes regex characters when checking duplicates", async () => {
@@ -263,7 +284,7 @@ describe("admin user actions", () => {
 
       it("rejects a short password", async () => {
         m.User.findOne.mockResolvedValue(null);
-        await expect(createUser({ username: "ann", password: "1234567" })).rejects.toThrow("Password must be at least 8 characters.");
+        expect(await createUser({ username: "ann", password: "1234567" })).toEqual({ error: "Password must be at least 8 characters." });
       });
 
       it("creates the user with defaults and logs it", async () => {
@@ -274,6 +295,7 @@ describe("admin user actions", () => {
         expect(m.User.create).toHaveBeenCalledWith({
           username: "ann",
           email: "ann@x.com",
+          emailTrusted: true,
           role: "user",
           passwordHash: "hashed",
           forcePasswordChange: false,

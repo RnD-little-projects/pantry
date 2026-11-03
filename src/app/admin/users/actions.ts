@@ -106,8 +106,20 @@ export async function resetUserPassword(userId: string) {
 export async function updateUserInfo(userId: string, data: { username: string; email?: string; role: string }) {
   const adminId = await ensureAdmin();
   await connectMongo();
+
+  const username = data.username?.trim();
+  if (!username) return { error: "Username is required." };
+  if (await User.exists({ _id: { $ne: userId }, username: { $regex: new RegExp(`^${escapeRegex(username)}$`, "i") } })) {
+    return { error: "Username already exists." };
+  }
+  const email = data.email?.trim().toLowerCase();
+  if (email && (await User.exists({ _id: { $ne: userId }, email }))) {
+    return { error: "Email already exists." };
+  }
+  data = { ...data, username, email: email || undefined };
   
-  const oldUser = await User.findByIdAndUpdate(userId, data);
+  // An admin saving the email vouches for it, which lets that Google account link on sign-in
+  const oldUser = await User.findByIdAndUpdate(userId, { ...data, emailTrusted: Boolean(data.email) });
   await AuditLog.create({
     actorId: adminId,
     targetType: "user",
@@ -118,6 +130,7 @@ export async function updateUserInfo(userId: string, data: { username: string; e
     note: `Admin updated user info for ${oldUser?.username}`
   });
   revalidatePath("/admin/users");
+  return { success: true };
 }
 
 /**
@@ -135,25 +148,26 @@ export async function createUser(data: Record<string, unknown>) {
     forcePasswordChange: boolean;
   };
 
-  if (!username) throw new Error("Username is required.");
+  if (!username) return { error: "Username is required." };
   
   const existingUser = await User.findOne({ username: { $regex: new RegExp(`^${escapeRegex(username)}$`, 'i') } });
-  if (existingUser) throw new Error("Username already exists.");
+  if (existingUser) return { error: "Username already exists." };
 
   if (email) {
     const existingEmail = await User.findOne({ email: { $regex: new RegExp(`^${escapeRegex(email)}$`, 'i') } });
-    if (existingEmail) throw new Error("Email already exists.");
+    if (existingEmail) return { error: "Email already exists." };
   }
 
   let passwordHash = undefined;
   if (password) {
-    if (password.length < MIN_PASSWORD_LENGTH) throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+    if (password.length < MIN_PASSWORD_LENGTH) return { error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
     passwordHash = await bcrypt.hash(password, 10);
   }
 
   const newUser = await User.create({
     username,
     email: email?.toLowerCase() || undefined,
+    emailTrusted: Boolean(email),
     role: role || "user",
     passwordHash,
     forcePasswordChange: !!forcePasswordChange,
@@ -170,4 +184,5 @@ export async function createUser(data: Record<string, unknown>) {
   });
 
   revalidatePath("/admin/users");
+  return { success: true };
 }

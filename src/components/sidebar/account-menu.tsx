@@ -66,12 +66,14 @@ export function AccountMenu({
 
     try {
       const res = await changeEmailAction(formData);
-      if (res.success) {
+      if (res.error) {
+        setEmailError(res.error);
+      } else {
         setEmailSuccess("Email updated successfully!");
         setEditingEmail(false);
       }
-    } catch (err: any) {
-      setEmailError(err.message || "Failed to update email");
+    } catch {
+      setEmailError("Failed to update email");
     } finally {
       setEmailLoading(false);
     }

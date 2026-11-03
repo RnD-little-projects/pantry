@@ -5,7 +5,7 @@ import { PantryLayout } from "@/components/pantry-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { startOrderAction } from "./new-order-action";
+import { StartOrderForm } from "./start-order-form";
 import { StartItemField } from "./start-item-field";
 import Link from "next/link";
 import { Package, ShoppingCart } from "lucide-react";
@@ -78,7 +78,7 @@ export default async function Home() {
   return (
     <PantryLayout active="overview" sessions={sessions} marketItems={marketItems} userRole={(session.user as Record<string, unknown>).role as string | undefined} user={session.user as any}>
       <div className="mx-auto w-full max-w-xl pt-2 sm:pt-8">
-        <form action={startOrderAction} className="receipt px-6 pb-6 pt-6 sm:px-8">
+        <StartOrderForm className="receipt px-6 pb-6 pt-6 sm:px-8">
           <header className="pb-4 text-center">
             <h1 className="text-lg font-bold uppercase tracking-wide">New list</h1>
             <p className="mt-1 text-xs text-muted-foreground">Write the first item and your list starts. Keep adding from there.</p>
@@ -107,7 +107,7 @@ export default async function Home() {
               Start my list
             </Button>
           </div>
-        </form>
+        </StartOrderForm>
       </div>
     </PantryLayout>
   );

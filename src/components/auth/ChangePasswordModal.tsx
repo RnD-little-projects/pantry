@@ -40,12 +40,14 @@ export function ChangePasswordModal({ open, onOpenChange }: ChangePasswordModalP
 
     try {
       const result = await changePassword(formData);
-      if (result.success) {
+      if (result.error) {
+        toast(result.error, "error");
+      } else {
         toast("Password changed successfully.", "success");
         onOpenChange(false);
       }
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
     } finally {
       setLoading(false);
     }

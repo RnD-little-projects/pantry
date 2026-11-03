@@ -51,29 +51,29 @@ describe("changePassword", () => {
     mockAuth.mockResolvedValue({ user: { id: "user_123" }, expires: "9999" });
   });
 
-  it("throws Unauthorized without a session", async () => {
+  it("returns an error without a session", async () => {
     mockAuth.mockResolvedValueOnce(null);
-    await expect(changePassword(form({ newPassword: "newpassword", confirmPassword: "newpassword" }))).rejects.toThrow("Unauthorized");
+    expect(await changePassword(form({ newPassword: "newpassword", confirmPassword: "newpassword" }))).toEqual({ error: "Your session expired. Sign in again." });
   });
 
   it("rejects a password shorter than 8 characters", async () => {
-    await expect(changePassword(form({ newPassword: "1234567", confirmPassword: "1234567" }))).rejects.toThrow(
-      "Password must be at least 8 characters long",
-    );
+    expect(await changePassword(form({ newPassword: "1234567", confirmPassword: "1234567" }))).toEqual({
+      error: "Password must be at least 8 characters long",
+    });
   });
 
   it("rejects mismatched passwords", async () => {
-    await expect(changePassword(form({ newPassword: "password123", confirmPassword: "different123" }))).rejects.toThrow(
-      "Passwords do not match",
-    );
+    expect(await changePassword(form({ newPassword: "password123", confirmPassword: "different123" }))).toEqual({
+      error: "Passwords do not match",
+    });
   });
 
   it("requires the current password for a normal change", async () => {
     dbUser({ passwordHash: "old_hash", forcePasswordChange: false });
     vi.mocked(bcrypt.compare).mockResolvedValueOnce(false as never);
-    await expect(
-      changePassword(form({ currentPassword: "wrong", newPassword: "newpassword", confirmPassword: "newpassword" })),
-    ).rejects.toThrow("Current password is incorrect");
+    expect(
+      await changePassword(form({ currentPassword: "wrong", newPassword: "newpassword", confirmPassword: "newpassword" })),
+    ).toEqual({ error: "Current password is incorrect" });
     expect(User.findByIdAndUpdate).not.toHaveBeenCalled();
   });
 

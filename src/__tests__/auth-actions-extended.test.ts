@@ -59,9 +59,7 @@ describe("auth-actions extended validation", () => {
     session();
     const fd = new FormData();
     fd.append("email", "not-an-email");
-    await expect(changeEmailAction(fd)).rejects.toThrow(
-      "Please enter a valid email address",
-    );
+    expect(await changeEmailAction(fd)).toEqual({ error: "Please enter a valid email address" });
   });
 
   it("changeEmailAction rejects an email owned by another account", async () => {
@@ -69,9 +67,7 @@ describe("auth-actions extended validation", () => {
     vi.mocked(User.findOne).mockResolvedValueOnce({ _id: "other_user" });
     const fd = new FormData();
     fd.append("email", "taken@example.com");
-    await expect(changeEmailAction(fd)).rejects.toThrow(
-      "This email is already in use by another account",
-    );
+    expect(await changeEmailAction(fd)).toEqual({ error: "This email is already in use by another account" });
   });
 });
 
@@ -89,9 +85,9 @@ describe("auth-actions success paths", () => {
     expect(unstable_update).toHaveBeenCalledWith({ user: { email: "me@example.com" } });
   });
 
-  it("changeEmailAction throws Unauthorized without a session", async () => {
+  it("changeEmailAction returns an error without a session", async () => {
     mockAuth.mockResolvedValueOnce(null);
-    await expect(changeEmailAction(new FormData())).rejects.toThrow("Unauthorized");
+    expect(await changeEmailAction(new FormData())).toEqual({ error: "Your session expired. Sign in again." });
   });
 
   it("logoutAction signs out without touching the shared AUTH_URL", async () => {

@@ -38,15 +38,18 @@ export default function ForcePasswordChangeForm() {
 
     try {
       const result = await changePassword(formData);
-      if (result.success) {
+      if (result.error) {
+        toast(result.error, "error");
+        setLoading(false);
+      } else {
         toast("Password Updated successfully.", "success");
         // Redirect to dashboard now that the token is updated
         setTimeout(() => {
           router.push("/");
         }, 1000);
       }
-    } catch (error: any) {
-      toast(error.message, "error");
+    } catch {
+      toast("Something went wrong. Try again.", "error");
       setLoading(false);
     }
   };
