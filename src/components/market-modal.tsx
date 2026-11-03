@@ -69,7 +69,6 @@ function MarketModalBody({ onClose, marketItems }: Readonly<Omit<MarketModalProp
           <div className="flex items-center justify-between gap-4">
             <div>
               <h3 id="market-modal-title" className="text-lg font-bold">Price list</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">What each item costs today.</p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               Close
