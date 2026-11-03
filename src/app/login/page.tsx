@@ -4,6 +4,7 @@ import { signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { LoginForm } from "./login-form";
+import { LoginErrorDialog } from "./login-error-dialog";
 
 const googleEnabled = Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET);
 
@@ -17,11 +18,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       description="Use your Pantry username and password."
     >
       <div className="space-y-4">
-        {error === "GoogleEmailInUse" && (
-          <p role="alert" className="rounded-control bg-muted p-3 text-sm text-muted-foreground">
-            That Google email already belongs to a Pantry account. Sign in with your password, then link Google from the account menu.
-          </p>
-        )}
+        {error && <LoginErrorDialog error={error} />}
         <LoginForm />
 
         <div className="space-y-3 pt-2">

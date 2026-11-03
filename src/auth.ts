@@ -10,6 +10,8 @@ export const authConfig = {
   session: { strategy: "jwt" as const },
   pages: {
     signIn: "/login",
+    // Rejected sign-ins (e.g. AccessDenied) land back on login, which shows them in a dialog
+    error: "/login",
   },
   providers: [
     Credentials({
