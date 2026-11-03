@@ -17,6 +17,8 @@ const userSchema = new Schema(
       default: "local",
     },
     providerAccountId: { type: String, trim: true, default: null },
+    // True when an admin set the email, so a verified Google login with it may link to this account
+    emailTrusted: { type: Boolean, default: false },
     avatarUrl: { type: String, trim: true, default: null },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },

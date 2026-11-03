@@ -65,7 +65,7 @@ export const authConfig = {
       : []),
   ],
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         await connectMongo();
         
@@ -92,17 +92,28 @@ export const authConfig = {
           }
         }
 
-        const existing = await User.findOne({ providerAccountId: account.providerAccountId });
+        let existing = await User.findOne({ providerAccountId: account.providerAccountId });
+
+        if (!existing && user.email) {
+          const owner = await User.findOne({ email: user.email.toLowerCase() });
+          if (owner) {
+            // Self-entered emails are unverified, so only link an account whose email an admin set,
+            // and only for a Google email Google has verified
+            if (!owner.emailTrusted || owner.providerAccountId || profile?.email_verified !== true) {
+              return "/login?error=GoogleEmailInUse";
+            }
+            owner.providerAccountId = account.providerAccountId;
+            owner.provider = "google";
+            await owner.save();
+            existing = owner;
+          }
+        }
 
         if (existing && (!existing.isActive || existing.isDeleted)) {
           return false;
         }
 
         if (!existing) {
-          // Emails on password accounts are unverified, so never sign a Google user into one by email
-          if (user.email && (await User.exists({ email: user.email.toLowerCase() }))) {
-            return "/login?error=GoogleEmailInUse";
-          }
 
           if (process.env.ALLOW_REGISTRATION === "false") {
             return false;
