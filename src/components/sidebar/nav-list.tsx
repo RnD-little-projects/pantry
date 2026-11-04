@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "../../lib/utils";
 import type { WorkspaceSession } from "../../lib/pantry-types";
@@ -44,6 +44,8 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
               <Link
                 key={session.id ?? session.publicId ?? session.title}
                 href={href}
+                // Archived orders are locked, so a full prefetch can't go stale and makes switching instant
+                prefetch={session.status === "archived" ? true : undefined}
                 className={cn(
                   "block w-full rounded-control px-2 py-2 text-left transition-colors",
                   isActive
@@ -51,17 +53,26 @@ export function SessionList({ collapsed, sessions }: Readonly<NavListProps>) {
                     : "text-foreground/75 hover:bg-card/60 hover:text-foreground",
                 )}
               >
-                <span className={cn(
-                  "block truncate font-mono text-[13px]",
-                  session.status === "archived" && "text-muted-foreground line-through"
-                )}>
-                  {session.title}
-                </span>
+                <SessionTitle title={session.title} archived={session.status === "archived"} />
               </Link>
             );
           })}
         </div>
       </div>
     </div>
+  );
+}
+
+// Order pages render on the server, so show the click landed while the next list loads
+function SessionTitle({ title, archived }: Readonly<{ title: string; archived: boolean }>) {
+  const { pending } = useLinkStatus();
+  return (
+    <span className={cn(
+      "block truncate font-mono text-[13px]",
+      archived && "text-muted-foreground line-through",
+      pending && "animate-pulse motion-reduce:animate-none motion-reduce:opacity-60"
+    )}>
+      {title}
+    </span>
   );
 }
