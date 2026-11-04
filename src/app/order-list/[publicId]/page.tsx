@@ -3,14 +3,13 @@ import { PantryLayout } from "@/components/pantry-layout";
 import { Badge } from "@/components/ui/badge";
 import { getMarketItems, getOrderHistory, getOverviewSessions, getSharedOrder } from "@/lib/pantry-db";
 import { redirect } from "next/navigation";
-import Image from "next/image";
 import { OrderItemComposer } from "./order-item-composer";
 import { EditableQuantityCell } from "./editable-quantity-cell";
 import { DeleteItemButton } from "./delete-item-button";
 import { UndoActionButton } from "./undo-action-button";
 import { ArchiveOrderDialog } from "./archive-order-dialog";
 import { ActivityLogMobileModal } from "./activity-log-modal";
-import { Image as ImageIcon } from "lucide-react";
+import { ReceiptViewer } from "./receipt-viewer";
 import { cn, formatMoney } from "@/lib/utils";
 
 type SessionPageProps = {
@@ -129,12 +128,7 @@ export default async function SessionPage({ params }: Readonly<SessionPageProps>
 
           {order.receiptUrl && (
             <div className="receipt-rule mt-5 flex items-center gap-4 pt-4">
-              <div className="relative h-16 w-24 shrink-0 overflow-hidden bg-muted">
-                <Image src={order.receiptUrl} alt="Receipt photo" fill unoptimized className="object-cover" />
-              </div>
-              <a href={order.receiptUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold underline underline-offset-4">
-                <ImageIcon aria-hidden="true" className="h-4 w-4" /> View receipt photo
-              </a>
+              <ReceiptViewer src={order.receiptUrl} />
             </div>
           )}
         </section>
