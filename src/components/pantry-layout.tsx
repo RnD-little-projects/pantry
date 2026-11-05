@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-import { ShoppingBasket } from "lucide-react";
+import { MessageSquarePlus, ShoppingBasket } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import type { MarketItem, WorkspaceSession } from "../lib/pantry-types";
@@ -18,6 +18,7 @@ import { SessionList } from "./sidebar/nav-list";
 import { AccountMenu, type ThemeMode } from "./sidebar/account-menu";
 import { MarketModal } from "./market-modal";
 import { QrModal } from "./qr-modal";
+import { RequestItemModal } from "./request-item-modal";
 
 type UserProfile = {
   id?: string;
@@ -59,6 +60,7 @@ export function PantryLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -185,6 +187,18 @@ export function PantryLayout({
                       >
                         <span className="truncate text-sm">Products</span>
                       </Link>
+                      <Link
+                        href="/admin/requests"
+                        className={cn(
+                          "block w-full rounded-control px-2 py-2 text-left transition-colors",
+                          pathname === "/admin/requests"
+                            ? "bg-card font-bold text-card-foreground"
+                            : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
+                        )}
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <span className="truncate text-sm">Requests</span>
+                      </Link>
                       {userRole === "admin" && (
                         <>
                           <Link
@@ -198,6 +212,18 @@ export function PantryLayout({
                             onClick={() => setMobileMenuOpen(false)}
                           >
                             <span className="truncate text-sm">Users</span>
+                          </Link>
+                          <Link
+                            href="/admin/feedback"
+                            className={cn(
+                              "block w-full rounded-control px-2 py-2 text-left transition-colors",
+                              pathname === "/admin/feedback"
+                                ? "bg-card font-bold text-card-foreground"
+                                : "font-medium text-foreground/80 hover:bg-card/60 hover:text-foreground"
+                            )}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span className="truncate text-sm">Feedback</span>
                           </Link>
                           <Link
                             href="/admin/audit-logs"
@@ -233,6 +259,26 @@ export function PantryLayout({
 
             {/* Sidebar Footer Actions */}
             <div className="mt-5 space-y-3 border-t border-border pt-4 shrink-0">
+              <Button
+                variant="secondary"
+                className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-between px-2")}
+                aria-label="Open item requests"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setRequestOpen(true);
+                }}
+              >
+                <MessageSquarePlus aria-hidden="true" className="h-[18px] w-9 shrink-0 text-primary" />
+                <div className={cn(
+                  "overflow-hidden transition-[width,opacity] duration-300 motion-reduce:transition-none",
+                  isCollapsed ? "w-0 opacity-0" : "w-[155px] opacity-100"
+                )}>
+                  <div className="w-[155px] flex items-center pl-2">
+                    <span className="whitespace-nowrap">Item requests</span>
+                  </div>
+                </div>
+              </Button>
+
               <Button
                 variant="secondary"
                 className={cn("w-full", isCollapsed ? "justify-center px-0" : "justify-between px-2")}
@@ -316,6 +362,7 @@ export function PantryLayout({
       {/* Overlays */}
       <MarketModal open={marketOpen} onClose={() => setMarketOpen(false)} marketItems={marketItems} />
       <QrModal open={qrOpen} onClose={() => setQrOpen(false)} />
+      <RequestItemModal open={requestOpen} onClose={() => setRequestOpen(false)} />
     </main>
   );
 }

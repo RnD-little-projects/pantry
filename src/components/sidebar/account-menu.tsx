@@ -7,10 +7,11 @@ import { Button } from "../ui/button";
 import { logoutAction, attachGoogleAction, changeEmailAction } from "@/app/auth-actions";
 import { useState, useEffect } from "react";
 import { ChangePasswordModal } from "../auth/ChangePasswordModal";
+import { FeedbackModal } from "../feedback-modal";
 import { Dialog } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
-import { Mail, Shield, Key, LogOut, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Mail, Shield, Key, LogOut, CheckCircle2, AlertCircle, RefreshCw, MessageSquare } from "lucide-react";
 
 export type ThemeMode = "system" | "light" | "dark";
 
@@ -42,6 +43,7 @@ export function AccountMenu({
   user,
 }: AccountMenuProps) {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
   const [emailInput, setEmailInput] = useState(user?.email || "");
   const [emailLoading, setEmailLoading] = useState(false);
@@ -298,6 +300,20 @@ export function AccountMenu({
               type="button"
               className="flex w-full items-center justify-start rounded-control px-4 py-3.5 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground border border-border"
               onClick={() => {
+                setFeedbackOpen(true);
+                onOpenChange(false);
+              }}
+            >
+              <span className="flex items-center gap-2 font-medium">
+                <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                <span>Send feedback</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className="flex w-full items-center justify-start rounded-control px-4 py-3.5 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground border border-border"
+              onClick={() => {
                 setPasswordModalOpen(true);
                 onOpenChange(false);
               }}
@@ -325,6 +341,7 @@ export function AccountMenu({
       </Dialog>
 
       <ChangePasswordModal open={passwordModalOpen} onOpenChange={setPasswordModalOpen} />
+      <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
   );
 }

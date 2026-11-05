@@ -12,6 +12,8 @@ interface DialogProps {
   description?: string;
   children?: React.ReactNode;
   footer?: React.ReactNode;
+  /** Wider card on larger screens, for dialogs that hold a list or grid */
+  wide?: boolean;
 }
 
 export function Dialog({
@@ -21,6 +23,7 @@ export function Dialog({
   description,
   children,
   footer,
+  wide = false,
 }: DialogProps) {
   const [mounted, setMounted] = React.useState(false);
 
@@ -54,7 +57,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="dialog-title"
-        className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-sheet border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-sheet custom-scrollbar sm:rounded-sheet"
+        className={`relative max-h-[90dvh] w-full ${wide ? "max-w-5xl" : "max-w-md"} overflow-y-auto overscroll-contain rounded-t-sheet border border-border bg-card p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] animate-sheet custom-scrollbar sm:rounded-sheet`}
       >
         <div className="flex items-center justify-between mb-2">
           <h2 id="dialog-title" className="font-display text-xl text-balance">{title}</h2>
