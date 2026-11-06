@@ -1,0 +1,13 @@
+# Build: docker compose build   -> local/pantry:latest
+# Deploy: ~/docker-apps/deploy.sh pantry  (Portainer stack; sets APP_DIR to this folder)
+services:
+  pantry:
+    build: ${APP_DIR:-.}
+    image: local/pantry:latest
+    container_name: pantry
+    restart: unless-stopped
+    user: "1002:1002"   # royceu, so storage/ keeps its ownership
+    ports: ["127.0.0.1:3001:3001"]
+    volumes:
+      - ${APP_DIR:-.}/.env:/app/.env:ro
+      - ${APP_DIR:-.}/storage:/app/storage
